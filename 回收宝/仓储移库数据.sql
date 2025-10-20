@@ -1,6 +1,19 @@
+/*
+📦 仓储移库数据查询
+用途：查看仓库之间货物移动的记录
+就像查看"哪些东西从A仓库搬到了B仓库"
+*/
+
 select 
-    *,
-    left(fserial_no,2) as fchannel
-from dwd.dwd_t_pm_wms_stock_notify 
-where to_date(fcreate_time)>='2024-01-01'
-and fcmd='move'
+    *,                                    -- 选择所有原始字段（就像说"把这张表的所有信息都给我看看"）
+    left(fserial_no,2) as fchannel       -- 从序列号的前2位判断是哪个渠道（就像从学号前2位看出是哪个年级）
+from dwd.dwd_t_pm_wms_stock_notify       -- 从"仓库库存通知表"这张表里找数据
+where to_date(fcreate_time)>='2024-01-01'  -- 只要2024年1月1日以后的记录（就像只看今年的记录）
+and fcmd='move'                          -- 并且操作类型是"移库"（move=移动的意思）
+
+/*
+💡 简单解释：
+这个查询就像问仓库管理员：
+"给我看看2024年以后所有的货物移动记录，
+顺便告诉我每个货物是从哪个渠道来的"
+*/

@@ -1,2 +1,0 @@
-SHOW CREATE TABLE drt.drt_my33312_hsb_sales_product_t_stock_order_saleout;
-SELECT * FROM drt.drt_my33312_hsb_sales_product_t_stock_order_saleout LIMIT 10;
