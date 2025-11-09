@@ -51,10 +51,10 @@ detect as (       --取最新检测明细数据，支持所有平台（竞拍、
         and to_date(a.fend_time)>=(select date_detect_order from config)
         and a.fend_time<b.forder_create_time
         and c.Fposition_id <>129            --剔除入库组缺陷拍照的人员
-        --and fdetection_object<>3
             ) c
     where c.num=1
 ),
+
 after_sale_detect as (
 select
         *
