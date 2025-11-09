@@ -1,9 +1,3 @@
--- 竞拍售后明细（含鱼市B2B渠道）
--- 说明：
--- 1) 完整沿用《原始/竞拍售后明细数据.sql》的自有平台与采货侠两大分支；
--- 2) 新增 B2B 分支（forder_platform=5，近365天，不拼历史表），售后使用 drt.drt_my33306_hsb_sales_t_caihuoxia_after_sales；
--- 3) B2B 检测模块窗口按365天独立配置（不影响原有自有/采货侠窗口）。
-
 with detect as (       --取最新检测明细数据，取检测人、检测模板（原口径保留）
     select
         *
@@ -52,22 +46,24 @@ with detect as (       --取最新检测明细数据，取检测人、检测模�
             ) c
     where c.num=1
 ),
+
 after_sale_detect as (
-select
+    select
         *
-    from (
-        select
-            *,
-            row_number() over(partition by fserial_number order by fend_time asc) as num
-        from drt.drt_my33310_detection_t_detect_record
-        where fdet_type=0
-        and fis_deleted=0
-        and freport_type=0
-        and fverdict<>"测试单"
-        and to_date(fend_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),400))
-        and left(fserial_number,2) in ('YZ','NT','JM'))t
+        from (
+            select
+                *,
+                row_number() over(partition by fserial_number order by fend_time asc) as num
+            from drt.drt_my33310_detection_t_detect_record
+            where fdet_type=0
+            and fis_deleted=0
+            and freport_type=0
+            and fverdict<>"测试单"
+            and to_date(fend_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),400))
+            and left(fserial_number,2) in ('YZ','NT','JM'))t
     where num=1
 ),
+
 jp_sale as(
     select
         *
@@ -99,20 +95,8 @@ jp_sale as(
         and forder_platform not in (5,6)
         and (fmerchant_jp=0 or fmerchant_jp is null)
         and forder_status in (2,3,4,6)) t where num=1
-    -- union all
-    -- select
-    --     *
-    -- from (
-    --     select
-    --         *,
-    --         row_number() over(partition by fseries_number order by  forder_create_time desc) as num
-    --     from dws.dws_jp_order_detail_history2020_2022
-    --     where ftest_show <> 1
-    --     and to_date(forder_create_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),400))
-    --     and forder_platform not in (5,6)
-    --     and (fmerchant_jp=0 or fmerchant_jp is null)
-    --     and forder_status in (2,3,4,6)) t where num=1
 ),
+
 jp_first_sale as (  --第一次销售
         select
         *
@@ -141,19 +125,8 @@ jp_first_sale as (  --第一次销售
         and to_date(forder_create_time) between '2023-01-01' and to_date(date_sub(from_unixtime(unix_timestamp()),366))
         and forder_platform not in (5,6)
         and forder_status in (2,3,4,6)) t where num=1
-    -- union all
-    -- select
-    --     *
-    -- from (
-    --     select
-    --         *,
-    --         row_number() over(partition by fseries_number order by  forder_create_time asc) as num
-    --     from dws.dws_jp_order_detail_history2020_2022
-    --     where ftest_show <> 1
-    --     and to_date(forder_create_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),400))
-    --     and forder_platform not in (5,6)
-    --     and forder_status in (2,3,4,6)) t where num=1
 ),
+
 jp_second_sale as (   --二次销售
         select
         *
@@ -225,6 +198,7 @@ jp_second_sale as (   --二次销售
         where a.Fbd_status <>2
         and a.fchannel_name='竞拍销售默认渠道号') t
 ),
+
 after_sale as (
     select
         *
@@ -239,6 +213,7 @@ after_sale as (
         --and Faftersales_owner<>3
         ) t where num=1
 ),
+
 caihuoxia_sale as (
     select
         *
@@ -269,47 +244,36 @@ caihuoxia_sale as (
         and fmerchant_jp=0
         and to_date(forder_create_time) between '2023-01-01' and to_date(date_sub(from_unixtime(unix_timestamp()),366))
         and forder_status in (2,3,4,6)) t where num=1
-    -- union all
-    -- select
-    --     *
-    -- from (
-    --     select
-    --         *,
-    --         row_number() over(partition by fseries_number order by  forder_create_time desc) as num
-    --     from dws.dws_jp_order_detail_history2020_2022
-    --     where ftest_show <> 1
-    --     and forder_platform=6
-    --     and fmerchant_jp=0
-    --     and to_date(forder_create_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),400))
-    --     and forder_status in (2,3,4,6)) t where num=1
 ),
+
 caihuoxia_after_sale as (
-select
-    *
-from (
     select
-        * ,
-        row_number() over(partition by fbusiness_id order by fcreate_time desc)as num
-    from drt.drt_my33306_hsb_sales_t_caihuoxia_after_sales
-)t where num=1
-),
-caihuoxia_first_sale as(
-select
-    *
-from (
+        *
+    from (
         select
-            *,
-            row_number() over(partition by fseries_number order by  forder_create_time asc) as num
-        from dws.dws_jp_order_detail
-        where ftest_show <> 1
-        and forder_platform=6
-        and fmerchant_jp=0
-        and to_date(forder_create_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),365))
-        and forder_status in (2,3,4,6)) t where num=1
-union all
-select
-    *
-from (
+            * ,
+            row_number() over(partition by fbusiness_id order by fcreate_time desc)as num
+        from drt.drt_my33306_hsb_sales_t_caihuoxia_after_sales
+    )t where num=1
+),
+
+caihuoxia_first_sale as(
+    select
+        *
+    from (
+            select
+                *,
+                row_number() over(partition by fseries_number order by  forder_create_time asc) as num
+            from dws.dws_jp_order_detail
+            where ftest_show <> 1
+            and forder_platform=6
+            and fmerchant_jp=0
+            and to_date(forder_create_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),365))
+            and forder_status in (2,3,4,6)) t where num=1
+    union all
+    select
+        *
+    from (
         select
             *,
                         "" as Fys_b2b_series_number
@@ -322,200 +286,188 @@ from (
         and forder_platform=6
         and fmerchant_jp=0
         and to_date(forder_create_time) between '2023-01-01' and to_date(date_sub(from_unixtime(unix_timestamp()),366))
-        and forder_status in (2,3,4,6)) t where num=1
--- union all
--- select
---     *
--- from (
---         select
---             *,
---             row_number() over(partition by fseries_number order by  forder_create_time asc) as num
---         from dws.dws_jp_order_detail_history2020_2022
---         where ftest_show <> 1
---         and forder_platform=6
---         and fmerchant_jp=0
---         and to_date(forder_create_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),400))
---         and forder_status in (2,3,4,6)) t where num=1
+            and forder_status in (2,3,4,6)) t where num=1
 ),
+
 caihuoxia_second_sale as (
-select
-    fstart_time,
-    fseries_number,
-    foffer_price/100 as foffer_price,
-    Fcity_name,
-    Forder_address,
-    Freceiver_id,
-    Freceiver_name,
-    Freceiver_phone
-from (
-        select
-            a.fstart_time,
-            if(b.fsrouce_serial_no is not null,upper(b.fsrouce_serial_no),a.fseries_number) as fseries_number,
-            a.foffer_price,
-            a.Fcity_name,
-            a.Forder_address,
-            a.Freceiver_id,
-            a.Freceiver_name,
-            a.Freceiver_phone,
-            row_number() over(partition by fseries_number order by  forder_create_time asc) as num
-        from dws.dws_jp_order_detail as a
-        left join drt.drt_my33312_hsb_sales_product_t_pm_local_create_sn as b on a.fseries_number=b.fserial_no
-        where ftest_show <> 1
-        and to_date(a.forder_create_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),365))
-        and forder_platform=6
-        and fmerchant_jp=0
-        and forder_status in (2,3,4,6)) t where num=2
-union all
-select
-    fstart_time,
-    fseries_number,
-    foffer_price/100 as foffer_price,
-    Fcity_name,
-    Forder_address,
-    Freceiver_id,
-    Freceiver_name,
-    Freceiver_phone
-from (
-        select
-            a.fstart_time,
-            if(b.fsrouce_serial_no is not null,upper(b.fsrouce_serial_no),a.fseries_number) as fseries_number,
-            a.foffer_price,
-            a.Fcity_name,
-            a.Forder_address,
-            a.Freceiver_id,
-            a.Freceiver_name,
-            a.Freceiver_phone,
-            row_number() over(partition by fseries_number order by  forder_create_time asc) as num
-        from dws.dws_jp_order_detail_history2023 as a
-        left join drt.drt_my33312_hsb_sales_product_t_pm_local_create_sn as b on a.fseries_number=b.fserial_no
-        where ftest_show <> 1
-        and to_date(a.forder_create_time) between '2023-01-01' and to_date(date_sub(from_unixtime(unix_timestamp()),366))
-        and forder_platform=6
-        and fmerchant_jp=0
-        and forder_status in (2,3,4,6)) t where num=2
-union all
-select
-    fstart_time,
-    fseries_number,
-    foffer_price/100 as foffer_price,
-    Fcity_name,
-    Forder_address,
-    Freceiver_id,
-    Freceiver_name,
-    Freceiver_phone
-from (
-        select
-            a.fstart_time,
-            if(b.fsrouce_serial_no is not null,upper(b.fsrouce_serial_no),a.fseries_number) as fseries_number,
-            a.foffer_price,
-            a.Fcity_name,
-            a.Forder_address,
-            a.Freceiver_id,
-            a.Freceiver_name,
-            a.Freceiver_phone,
-            row_number() over(partition by fseries_number order by  forder_create_time asc) as num
-        from dws.dws_jp_order_detail_history2020_2022 as a
-        left join drt.drt_my33312_hsb_sales_product_t_pm_local_create_sn as b on a.fseries_number=b.fserial_no
-        where ftest_show <> 1
-        and to_date(a.forder_create_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),400))
-        and forder_platform=6
-        and fmerchant_jp=0
-        and forder_status in (2,3,4,6)) t where num=2
-union all
-select
-    fstart_time,
-    fseries_number,
-    foffer_price/100 as foffer_price,
-    Fcity_name,
-    Forder_address,
-    Freceiver_id,
-    Freceiver_name,
-    Freceiver_phone
-from (
-        select
-            a.fstart_time,
-            if(b.fsrouce_serial_no is not null,upper(b.fsrouce_serial_no),a.fseries_number) as fseries_number,
-            a.foffer_price,
-            a.Fcity_name,
-            a.Forder_address,
-            a.Freceiver_id,
-            a.Freceiver_name,
-            a.Freceiver_phone,
-            row_number() over(partition by fseries_number order by  forder_create_time asc) as num
-        from dws.dws_jp_order_detail as a
-        left join drt.drt_my33312_hsb_sales_product_t_pm_local_create_sn as b on a.fseries_number=b.fserial_no
-        where ftest_show <> 1
-        and forder_platform<>6
-        and to_date(a.forder_create_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),365))
-        and fmerchant_jp=0
-        and forder_status in (2,3,4,6)) t where num=1
-union all
-select
-    fstart_time,
-    fseries_number,
-    foffer_price/100 as foffer_price,
-    Fcity_name,
-    Forder_address,
-    Freceiver_id,
-    Freceiver_name,
-    Freceiver_phone
-from (
-        select
-            a.fstart_time,
-            if(b.fsrouce_serial_no is not null,upper(b.fsrouce_serial_no),a.fseries_number) as fseries_number,
-            a.foffer_price,
-            a.Fcity_name,
-            a.Forder_address,
-            a.Freceiver_id,
-            a.Freceiver_name,
-            a.Freceiver_phone,
-            row_number() over(partition by fseries_number order by  forder_create_time asc) as num
-        from dws.dws_jp_order_detail_history2023 as a
-        left join drt.drt_my33312_hsb_sales_product_t_pm_local_create_sn as b on a.fseries_number=b.fserial_no
-        where ftest_show <> 1
-        and forder_platform<>6
-        and to_date(a.forder_create_time) between '2023-01-01' and to_date(date_sub(from_unixtime(unix_timestamp()),366))
-        and fmerchant_jp=0
-        and forder_status in (2,3,4,6)) t where num=1
-union all
-select
-    fstart_time,
-    fseries_number,
-    foffer_price/100 as foffer_price,
-    Fcity_name,
-    Forder_address,
-    Freceiver_id,
-    Freceiver_name,
-    Freceiver_phone
-from (
-        select
-            a.fstart_time,
-            if(b.fsrouce_serial_no is not null,upper(b.fsrouce_serial_no),a.fseries_number) as fseries_number,
-            a.foffer_price,
-            a.Fcity_name,
-            a.Forder_address,
-            a.Freceiver_id,
-            a.Freceiver_name,
-            a.Freceiver_phone,
-            row_number() over(partition by fseries_number order by  forder_create_time asc) as num
-        from dws.dws_jp_order_detail_history2020_2022 as a
-        left join drt.drt_my33312_hsb_sales_product_t_pm_local_create_sn as b on a.fseries_number=b.fserial_no
-        where ftest_show <> 1
-        and forder_platform<>6
-        and to_date(a.forder_create_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),400))
-        and fmerchant_jp=0
-        and forder_status in (2,3,4,6)) t where num=1
-union all
-select
-    fstart_time,
-    fseries_number,
-    foffer_price/100 as foffer_price,
-    null as Fcity_name,
-    null as Forder_address,
-    null as Freceiver_id,
-    null as Freceiver_name,
-    null as Freceiver_phone
-from (
+    select
+        fstart_time,
+        fseries_number,
+        foffer_price/100 as foffer_price,
+        Fcity_name,
+        Forder_address,
+        Freceiver_id,
+        Freceiver_name,
+        Freceiver_phone
+    from (
+            select
+                a.fstart_time,
+                if(b.fsrouce_serial_no is not null,upper(b.fsrouce_serial_no),a.fseries_number) as fseries_number,
+                a.foffer_price,
+                a.Fcity_name,
+                a.Forder_address,
+                a.Freceiver_id,
+                a.Freceiver_name,
+                a.Freceiver_phone,
+                row_number() over(partition by fseries_number order by  forder_create_time asc) as num
+            from dws.dws_jp_order_detail as a
+            left join drt.drt_my33312_hsb_sales_product_t_pm_local_create_sn as b on a.fseries_number=b.fserial_no
+            where ftest_show <> 1
+            and to_date(a.forder_create_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),365))
+            and forder_platform=6
+            and fmerchant_jp=0
+            and forder_status in (2,3,4,6)) t where num=2
+    union all
+    select
+        fstart_time,
+        fseries_number,
+        foffer_price/100 as foffer_price,
+        Fcity_name,
+        Forder_address,
+        Freceiver_id,
+        Freceiver_name,
+        Freceiver_phone
+    from (
+            select
+                a.fstart_time,
+                if(b.fsrouce_serial_no is not null,upper(b.fsrouce_serial_no),a.fseries_number) as fseries_number,
+                a.foffer_price,
+                a.Fcity_name,
+                a.Forder_address,
+                a.Freceiver_id,
+                a.Freceiver_name,
+                a.Freceiver_phone,
+                row_number() over(partition by fseries_number order by  forder_create_time asc) as num
+            from dws.dws_jp_order_detail_history2023 as a
+            left join drt.drt_my33312_hsb_sales_product_t_pm_local_create_sn as b on a.fseries_number=b.fserial_no
+            where ftest_show <> 1
+            and to_date(a.forder_create_time) between '2023-01-01' and to_date(date_sub(from_unixtime(unix_timestamp()),366))
+            and forder_platform=6
+            and fmerchant_jp=0
+            and forder_status in (2,3,4,6)) t where num=2
+    union all
+    select
+        fstart_time,
+        fseries_number,
+        foffer_price/100 as foffer_price,
+        Fcity_name,
+        Forder_address,
+        Freceiver_id,
+        Freceiver_name,
+        Freceiver_phone
+    from (
+            select
+                a.fstart_time,
+                if(b.fsrouce_serial_no is not null,upper(b.fsrouce_serial_no),a.fseries_number) as fseries_number,
+                a.foffer_price,
+                a.Fcity_name,
+                a.Forder_address,
+                a.Freceiver_id,
+                a.Freceiver_name,
+                a.Freceiver_phone,
+                row_number() over(partition by fseries_number order by  forder_create_time asc) as num
+            from dws.dws_jp_order_detail_history2020_2022 as a
+            left join drt.drt_my33312_hsb_sales_product_t_pm_local_create_sn as b on a.fseries_number=b.fserial_no
+            where ftest_show <> 1
+            and to_date(a.forder_create_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),400))
+            and forder_platform=6
+            and fmerchant_jp=0
+            and forder_status in (2,3,4,6)) t where num=2
+    union all
+    select
+        fstart_time,
+        fseries_number,
+        foffer_price/100 as foffer_price,
+        Fcity_name,
+        Forder_address,
+        Freceiver_id,
+        Freceiver_name,
+        Freceiver_phone
+    from (
+            select
+                a.fstart_time,
+                if(b.fsrouce_serial_no is not null,upper(b.fsrouce_serial_no),a.fseries_number) as fseries_number,
+                a.foffer_price,
+                a.Fcity_name,
+                a.Forder_address,
+                a.Freceiver_id,
+                a.Freceiver_name,
+                a.Freceiver_phone,
+                row_number() over(partition by fseries_number order by  forder_create_time asc) as num
+            from dws.dws_jp_order_detail as a
+            left join drt.drt_my33312_hsb_sales_product_t_pm_local_create_sn as b on a.fseries_number=b.fserial_no
+            where ftest_show <> 1
+            and forder_platform<>6
+            and to_date(a.forder_create_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),365))
+            and fmerchant_jp=0
+            and forder_status in (2,3,4,6)) t where num=1
+    union all
+    select
+        fstart_time,
+        fseries_number,
+        foffer_price/100 as foffer_price,
+        Fcity_name,
+        Forder_address,
+        Freceiver_id,
+        Freceiver_name,
+        Freceiver_phone
+    from (
+            select
+                a.fstart_time,
+                if(b.fsrouce_serial_no is not null,upper(b.fsrouce_serial_no),a.fseries_number) as fseries_number,
+                a.foffer_price,
+                a.Fcity_name,
+                a.Forder_address,
+                a.Freceiver_id,
+                a.Freceiver_name,
+                a.Freceiver_phone,
+                row_number() over(partition by fseries_number order by  forder_create_time asc) as num
+            from dws.dws_jp_order_detail_history2023 as a
+            left join drt.drt_my33312_hsb_sales_product_t_pm_local_create_sn as b on a.fseries_number=b.fserial_no
+            where ftest_show <> 1
+            and forder_platform<>6
+            and to_date(a.forder_create_time) between '2023-01-01' and to_date(date_sub(from_unixtime(unix_timestamp()),366))
+            and fmerchant_jp=0
+            and forder_status in (2,3,4,6)) t where num=1
+    union all
+    select
+        fstart_time,
+        fseries_number,
+        foffer_price/100 as foffer_price,
+        Fcity_name,
+        Forder_address,
+        Freceiver_id,
+        Freceiver_name,
+        Freceiver_phone
+    from (
+            select
+                a.fstart_time,
+                if(b.fsrouce_serial_no is not null,upper(b.fsrouce_serial_no),a.fseries_number) as fseries_number,
+                a.foffer_price,
+                a.Fcity_name,
+                a.Forder_address,
+                a.Freceiver_id,
+                a.Freceiver_name,
+                a.Freceiver_phone,
+                row_number() over(partition by fseries_number order by  forder_create_time asc) as num
+            from dws.dws_jp_order_detail_history2020_2022 as a
+            left join drt.drt_my33312_hsb_sales_product_t_pm_local_create_sn as b on a.fseries_number=b.fserial_no
+            where ftest_show <> 1
+            and forder_platform<>6
+            and to_date(a.forder_create_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),400))
+            and fmerchant_jp=0
+            and forder_status in (2,3,4,6)) t where num=1
+    union all
+    select
+        fstart_time,
+        fseries_number,
+        foffer_price/100 as foffer_price,
+        null as Fcity_name,
+        null as Forder_address,
+        null as Freceiver_id,
+        null as Freceiver_name,
+        null as Freceiver_phone
+    from (
     select
         a.fstart_time,
         if(b.fsrouce_serial_no is not null,upper(b.fsrouce_serial_no),a.fseries_number) as fseries_number,
@@ -526,78 +478,81 @@ from (
     where Fbd_status <>2
     )t where num=1
 ),
+
 detect_one as (
-select
-    upper(fserial_number) as fserial_number,
-    freal_name as fdetect_one_name,
-    from_unixtime(fend_det_time) as fdetect_one_time
-from (
-select
-    a.fserial_number,
-    a.fend_det_time,
-    b.freal_name,
-    row_number()over(partition by upper(a.fserial_number) order by a.fend_det_time desc) as num
-from drt.drt_my33312_detection_t_automation_det_record as a
-left join drt.drt_my33310_amcdb_t_user as b on a.fuser_name=b.fusername
-where fserial_number!=""
-and fserial_number is not null
-and to_date(from_unixtime(a.fend_det_time))>=to_date(date_sub(from_unixtime(unix_timestamp()),800)))t
-where num=1
-),
-detect_two as (
-select
-    upper(fserial_number) as fserial_number,
-    freal_name as fdetect_two_name,
-    fcreate_time as fdetect_two_time
-from (
-select
-    a.fcreate_time,
-    a.fserial_number,
-    b.freal_name,
-    row_number()over(partition by upper(a.fserial_number) order by a.fcreate_time desc) as num
-from drt.drt_my33312_detection_t_det_app_record as a
-left join drt.drt_my33310_amcdb_t_user as b on a.fuser_name=b.fusername
-where to_date(a.fcreate_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),800))
-and fserial_number!=""
-and fserial_number is not null)t
-where num=1
-),
-detect_three as (
-select
-    upper(fserial_number) as fserial_number,
-    freal_name as fdetect_three_name,
-    fcreate_time as fdetect_three_time
-from (
     select
-        a.fcreate_time,
-        a.fserial_number,
-        b.freal_name,
-        row_number()over(partition by upper(a.fserial_number) order by a.fcreate_time desc) as num
-    from drt.drt_my33312_detection_t_det_task as a
-    left join drt.drt_my33312_detection_t_det_task_record as b on a.ftask_id=b.ftask_id
-    where to_date(a.fend_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),800))
-    and b.fdet_sop_task_name like "%外观%")t
-where num=1
-),
-detect_three_pingmu as (
-select
-    upper(fserial_number) as fserial_number,
-    case when freal_name="李俊峰" then "李俊锋" else freal_name end as fdetect_three_name_pingmu,
-    fcreate_time as fdetect_three_time_pingmu
-from (
+        upper(fserial_number) as fserial_number,
+        freal_name as fdetect_one_name,
+        from_unixtime(fend_det_time) as fdetect_one_time
+    from (
     select
-        a.fcreate_time,
         a.fserial_number,
+        a.fend_det_time,
         b.freal_name,
-        row_number()over(partition by upper(a.fserial_number) order by a.fcreate_time desc) as num
-    from drt.drt_my33312_detection_t_det_task as a
-    left join drt.drt_my33312_detection_t_det_task_record as b on a.ftask_id=b.ftask_id
-    where to_date(a.fend_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),800))
-    and b.fdet_sop_task_name like "%屏幕%"
-    and b.fdet_sop_task_name!="外观屏幕")t
-where num=1
+        row_number()over(partition by upper(a.fserial_number) order by a.fend_det_time desc) as num
+    from drt.drt_my33312_detection_t_automation_det_record as a
+    left join drt.drt_my33310_amcdb_t_user as b on a.fuser_name=b.fusername
+    where fserial_number!=""
+    and fserial_number is not null
+    and to_date(from_unixtime(a.fend_det_time))>=to_date(date_sub(from_unixtime(unix_timestamp()),800)))t
+    where num=1
 ),
 
+detect_two as (
+    select
+        upper(fserial_number) as fserial_number,
+        freal_name as fdetect_two_name,
+        fcreate_time as fdetect_two_time
+    from (
+    select
+        a.fcreate_time,
+        a.fserial_number,
+        b.freal_name,
+        row_number()over(partition by upper(a.fserial_number) order by a.fcreate_time desc) as num
+    from drt.drt_my33312_detection_t_det_app_record as a
+    left join drt.drt_my33310_amcdb_t_user as b on a.fuser_name=b.fusername
+    where to_date(a.fcreate_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),800))
+    and fserial_number!=""
+    and fserial_number is not null)t
+    where num=1
+),
+
+detect_three as (
+    select
+        upper(fserial_number) as fserial_number,
+        freal_name as fdetect_three_name,
+        fcreate_time as fdetect_three_time
+    from (
+        select
+            a.fcreate_time,
+            a.fserial_number,
+            b.freal_name,
+            row_number()over(partition by upper(a.fserial_number) order by a.fcreate_time desc) as num
+        from drt.drt_my33312_detection_t_det_task as a
+        left join drt.drt_my33312_detection_t_det_task_record as b on a.ftask_id=b.ftask_id
+        where to_date(a.fend_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),800))
+        and b.fdet_sop_task_name like "%外观%")t
+    where num=1
+),
+
+detect_three_pingmu as (
+    select
+        upper(fserial_number) as fserial_number,
+        case when freal_name="李俊峰" then "李俊锋" else freal_name end as fdetect_three_name_pingmu,
+        fcreate_time as fdetect_three_time_pingmu
+    from (
+        select
+            a.fcreate_time,
+            a.fserial_number,
+            b.freal_name,
+            row_number()over(partition by upper(a.fserial_number) order by a.fcreate_time desc) as num
+        from drt.drt_my33312_detection_t_det_task as a
+        left join drt.drt_my33312_detection_t_det_task_record as b on a.ftask_id=b.ftask_id
+        where to_date(a.fend_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),800))
+        and b.fdet_sop_task_name like "%屏幕%"
+        and b.fdet_sop_task_name!="外观屏幕")t
+    where num=1
+),
 -- =========================
 -- 新增 B2B 专属 CTE（近365天，不拼历史表）
 -- =========================
@@ -615,6 +570,7 @@ b2b_sale as (
         and to_date(forder_create_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),365))
     ) t where num=1
 ),
+
 b2b_detect as (       -- B2B初检：窗口365天，平台=5（避免原 detect 中对商家/平台的限制导致匹配失败）
     select
         *
@@ -658,6 +614,7 @@ b2b_detect as (       -- B2B初检：窗口365天，平台=5（避免原 detect 
         and c.Fposition_id <>129
     ) c where c.num=1
 ),
+
 b2b_after_sale as (
     select
         *
@@ -668,19 +625,21 @@ b2b_after_sale as (
         from drt.drt_my33306_hsb_sales_t_caihuoxia_after_sales
     ) t where num=1
 ),
+
 b2b_first_sale as (
-select
-    *
-from (
-        select
-            *,
-            row_number() over(partition by fseries_number order by  forder_create_time asc) as num
-        from dws.dws_jp_order_detail
-        where ftest_show <> 1
-        and forder_platform=5
-        and to_date(forder_create_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),365))
-        and forder_status in (2,3,4,6)) t where num=1
+    select
+        *
+    from (
+            select
+                *,
+                row_number() over(partition by fseries_number order by  forder_create_time asc) as num
+            from dws.dws_jp_order_detail
+            where ftest_show <> 1
+            and forder_platform=5
+            and to_date(forder_create_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),365))
+            and forder_status in (2,3,4,6)) t where num=1
 ),
+
 b2b_detect_two as (
     select
         upper(fserial_number) as fserial_number,
@@ -699,6 +658,7 @@ b2b_detect_two as (
         and fserial_number is not null
     ) t where num=1
 ),
+
 b2b_detect_three as (
     select
         upper(fserial_number) as fserial_number,
@@ -716,6 +676,7 @@ b2b_detect_three as (
         and b.fdet_sop_task_name like "%外观%"
     ) t where num=1
 ),
+
 b2b_detect_three_pingmu as (
     select
         upper(fserial_number) as fserial_number,
@@ -736,99 +697,98 @@ b2b_detect_three_pingmu as (
 ),
 
 b2b_second_sale as (
-select
-    fstart_time,
-    fseries_number,
-    foffer_price/100 as foffer_price,
-    Fcity_name,
-    Forder_address,
-    Freceiver_id,
-    Freceiver_name,
-    Freceiver_phone
-from (
-        select
-            a.fstart_time,
-            if(b.fsrouce_serial_no is not null,upper(b.fsrouce_serial_no),a.fseries_number) as fseries_number,
-            a.foffer_price,
-            a.Fcity_name,
-            a.Forder_address,
-            a.Freceiver_id,
-            a.Freceiver_name,
-            a.Freceiver_phone,
-            row_number() over(partition by fseries_number order by  forder_create_time asc) as num
-        from dws.dws_jp_order_detail as a
-        left join drt.drt_my33312_hsb_sales_product_t_pm_local_create_sn as b on a.fseries_number=b.fserial_no
-        where ftest_show <> 1
-        and to_date(a.forder_create_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),365))
-        and forder_platform=5
-        and forder_status in (2,3,4,6)) t where num=2
-union all
-select
-    fstart_time,
-    fseries_number,
-    foffer_price/100 as foffer_price,
-    Fcity_name,
-    Forder_address,
-    Freceiver_id,
-    Freceiver_name,
-    Freceiver_phone
-from (
-        select
-            a.fstart_time,
-            if(b.fsrouce_serial_no is not null,upper(b.fsrouce_serial_no),a.fseries_number) as fseries_number,
-            a.foffer_price,
-            a.Fcity_name,
-            a.Forder_address,
-            a.Freceiver_id,
-            a.Freceiver_name,
-            a.Freceiver_phone,
-            row_number() over(partition by fseries_number order by  forder_create_time asc) as num
-        from dws.dws_jp_order_detail as a
-        left join drt.drt_my33312_hsb_sales_product_t_pm_local_create_sn as b on a.fseries_number=b.fserial_no
-        where ftest_show <> 1
-        and to_date(a.forder_create_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),365))
-        and forder_platform<>5
-        and forder_status in (2,3,4,6)) t where num=1
-union all
-select
-    fstart_time,
-    fseries_number,
-    foffer_price/100 as foffer_price,
-    null as Fcity_name,
-    null as Forder_address,
-    null as Freceiver_id,
-    null as Freceiver_name,
-    null as Freceiver_phone
-from (
     select
-        a.fstart_time,
-        if(b.fsrouce_serial_no is not null,upper(b.fsrouce_serial_no),a.fseries_number) as fseries_number,
-        a.foffer_price,
-        row_number() over(partition by fseries_number order by forder_create_time asc) as num
-    from dws.dws_th_order_detail as a
-    left join drt.drt_my33312_hsb_sales_product_t_pm_local_create_sn as b on a.fseries_number=b.fserial_no
-    where Fbd_status <>2
-    )t where num=1
+        fstart_time,
+        fseries_number,
+        foffer_price/100 as foffer_price,
+        Fcity_name,
+        Forder_address,
+        Freceiver_id,
+        Freceiver_name,
+        Freceiver_phone
+    from (
+            select
+                a.fstart_time,
+                if(b.fsrouce_serial_no is not null,upper(b.fsrouce_serial_no),a.fseries_number) as fseries_number,
+                a.foffer_price,
+                a.Fcity_name,
+                a.Forder_address,
+                a.Freceiver_id,
+                a.Freceiver_name,
+                a.Freceiver_phone,
+                row_number() over(partition by fseries_number order by  forder_create_time asc) as num
+            from dws.dws_jp_order_detail as a
+            left join drt.drt_my33312_hsb_sales_product_t_pm_local_create_sn as b on a.fseries_number=b.fserial_no
+            where ftest_show <> 1
+            and to_date(a.forder_create_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),365))
+            and forder_platform=5
+            and forder_status in (2,3,4,6)) t where num=2
+    union all
+    select
+        fstart_time,
+        fseries_number,
+        foffer_price/100 as foffer_price,
+        Fcity_name,
+        Forder_address,
+        Freceiver_id,
+        Freceiver_name,
+        Freceiver_phone
+    from (
+            select
+                a.fstart_time,
+                if(b.fsrouce_serial_no is not null,upper(b.fsrouce_serial_no),a.fseries_number) as fseries_number,
+                a.foffer_price,
+                a.Fcity_name,
+                a.Forder_address,
+                a.Freceiver_id,
+                a.Freceiver_name,
+                a.Freceiver_phone,
+                row_number() over(partition by fseries_number order by  forder_create_time asc) as num
+            from dws.dws_jp_order_detail as a
+            left join drt.drt_my33312_hsb_sales_product_t_pm_local_create_sn as b on a.fseries_number=b.fserial_no
+            where ftest_show <> 1
+            and to_date(a.forder_create_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),365))
+            and forder_platform<>5
+            and forder_status in (2,3,4,6)) t where num=1
+    union all
+    select
+        fstart_time,
+        fseries_number,
+        foffer_price/100 as foffer_price,
+        null as Fcity_name,
+        null as Forder_address,
+        null as Freceiver_id,
+        null as Freceiver_name,
+        null as Freceiver_phone
+    from (
+        select
+            a.fstart_time,
+            if(b.fsrouce_serial_no is not null,upper(b.fsrouce_serial_no),a.fseries_number) as fseries_number,
+            a.foffer_price,
+            row_number() over(partition by fseries_number order by forder_create_time asc) as num
+        from dws.dws_th_order_detail as a
+        left join drt.drt_my33312_hsb_sales_product_t_pm_local_create_sn as b on a.fseries_number=b.fserial_no
+        where Fbd_status <>2
+        )t where num=1
 ),
 
 detect_four as (
-select
-    upper(fserial_number) as fserial_number,
-    freal_name as fdetect_four_name,
-    fcreate_time as fdetect_four_time
-from (
     select
-        a.fcreate_time,
-        a.fserial_number,
-        b.freal_name,
-        row_number()over(partition by upper(a.fserial_number) order by a.fcreate_time desc) as num
-    from drt.drt_my33312_detection_t_det_task as a
-    left join drt.drt_my33312_detection_t_det_task_record as b on a.ftask_id=b.ftask_id
-    where to_date(a.fend_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),800))
-    and b.fdet_sop_task_name like "%拆修%")t
-where num=1
+        upper(fserial_number) as fserial_number,
+        freal_name as fdetect_four_name,
+        fcreate_time as fdetect_four_time
+    from (
+        select
+            a.fcreate_time,
+            a.fserial_number,
+            b.freal_name,
+            row_number()over(partition by upper(a.fserial_number) order by a.fcreate_time desc) as num
+        from drt.drt_my33312_detection_t_det_task as a
+        left join drt.drt_my33312_detection_t_det_task_record as b on a.ftask_id=b.ftask_id
+        where to_date(a.fend_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),800))
+        and b.fdet_sop_task_name like "%拆修%")t
+    where num=1
 )
-
 
 select
     a.fstart_time,
@@ -907,18 +867,19 @@ select
     j.fdetect_three_name_pingmu,
     if(g.fdetect_two_time is not null,"是","否") as "是否分模块",
     a.fanchor_level
-from jp_sale as a
-left join detect as b on a.fseries_number=b.fserial_number
-left join after_sale as c on a.fseries_number=c.Fsales_series_number
-left join after_sale_detect as f on c.fseries_number=f.fserial_number
-left join jp_first_sale as d on a.fseries_number=d.fseries_number
-left join jp_second_sale as e on a.fseries_number=e.fold_fseries_number
-left join detect_two as g on a.fseries_number=g.fserial_number
-left join detect_three as h on a.fseries_number=h.fserial_number
-left join detect_three_pingmu as j on a.fseries_number=j.fserial_number
-left join detect_four as i on a.fseries_number=i.fserial_number
-where a.fstart_time>=to_date(date_sub(from_unixtime(unix_timestamp()),400))
+    from jp_sale as a
+    left join detect as b on a.fseries_number=b.fserial_number
+    left join after_sale as c on a.fseries_number=c.Fsales_series_number
+    left join after_sale_detect as f on c.fseries_number=f.fserial_number
+    left join jp_first_sale as d on a.fseries_number=d.fseries_number
+    left join jp_second_sale as e on a.fseries_number=e.fold_fseries_number
+    left join detect_two as g on a.fseries_number=g.fserial_number
+    left join detect_three as h on a.fseries_number=h.fserial_number
+    left join detect_three_pingmu as j on a.fseries_number=j.fserial_number
+    left join detect_four as i on a.fseries_number=i.fserial_number
+    where a.fstart_time>=to_date(date_sub(from_unixtime(unix_timestamp()),400))
 union all
+
 select
     a.fstart_time,
     a.fseries_number,
@@ -996,18 +957,18 @@ select
     k.fdetect_three_name_pingmu,
     if(h.fdetect_two_time is not null,"是","否") as "是否分模块",
     a.fanchor_level
-from caihuoxia_sale as a
-left join detect as b on a.fseries_number=b.fserial_number
-left join caihuoxia_after_sale as c on a.fseries_number=c.fbusiness_id
-left join after_sale_detect as g on c.fnew_serial_no=g.fserial_number
-left join caihuoxia_first_sale as d on a.fseries_number=d.fseries_number
-left join caihuoxia_second_sale as e on a.fseries_number=e.fseries_number
-left join drt.drt_my33312_hsb_sales_product_t_pm_local_create_sn as f on a.fseries_number=upper(f.fsrouce_serial_no)
-left join detect_two as h on a.fseries_number=h.fserial_number
-left join detect_three as i on a.fseries_number=i.fserial_number
-left join detect_three_pingmu as k on a.fseries_number=k.fserial_number
-left join detect_four as j on a.fseries_number=j.fserial_number
-where a.fstart_time>=to_date(date_sub(from_unixtime(unix_timestamp()),400))
+    from caihuoxia_sale as a
+    left join detect as b on a.fseries_number=b.fserial_number
+    left join caihuoxia_after_sale as c on a.fseries_number=c.fbusiness_id
+    left join after_sale_detect as g on c.fnew_serial_no=g.fserial_number
+    left join caihuoxia_first_sale as d on a.fseries_number=d.fseries_number
+    left join caihuoxia_second_sale as e on a.fseries_number=e.fseries_number
+    left join drt.drt_my33312_hsb_sales_product_t_pm_local_create_sn as f on a.fseries_number=upper(f.fsrouce_serial_no)
+    left join detect_two as h on a.fseries_number=h.fserial_number
+    left join detect_three as i on a.fseries_number=i.fserial_number
+    left join detect_three_pingmu as k on a.fseries_number=k.fserial_number
+    left join detect_four as j on a.fseries_number=j.fserial_number
+    where a.fstart_time>=to_date(date_sub(from_unixtime(unix_timestamp()),400))
 union all
 -- B2B 分支（平台=5，近365天，不拼历史表）
 select
@@ -1087,16 +1048,16 @@ select
     k.fdetect_three_name_pingmu,
     if(h.fdetect_two_time is not null,"是","否") as "是否分模块",
     a.fanchor_level
-from b2b_sale as a
-left join b2b_detect as b on a.fseries_number=b.fserial_number
-left join b2b_after_sale as cc on a.fseries_number=cc.fbusiness_id
-left join after_sale_detect as g on upper(coalesce(cc.fnew_serial_no,a.fseries_number))=upper(g.fserial_number)
-left join b2b_detect_two as h on a.fseries_number=h.fserial_number
-left join b2b_detect_three as i on a.fseries_number=i.fserial_number
-left join b2b_detect_three_pingmu as k on a.fseries_number=k.fserial_number
-left join b2b_first_sale as d on a.fseries_number=d.fseries_number
-left join b2b_second_sale as e on a.fseries_number=e.fseries_number
-left join drt.drt_my33312_hsb_sales_product_t_pm_local_create_sn as f on a.fseries_number=upper(f.fsrouce_serial_no)
+    from b2b_sale as a
+    left join b2b_detect as b on a.fseries_number=b.fserial_number
+    left join b2b_after_sale as cc on a.fseries_number=cc.fbusiness_id
+    left join after_sale_detect as g on upper(coalesce(cc.fnew_serial_no,a.fseries_number))=upper(g.fserial_number)
+    left join b2b_detect_two as h on a.fseries_number=h.fserial_number
+    left join b2b_detect_three as i on a.fseries_number=i.fserial_number
+    left join b2b_detect_three_pingmu as k on a.fseries_number=k.fserial_number
+    left join b2b_first_sale as d on a.fseries_number=d.fseries_number
+    left join b2b_second_sale as e on a.fseries_number=e.fseries_number
+    left join drt.drt_my33312_hsb_sales_product_t_pm_local_create_sn as f on a.fseries_number=upper(f.fsrouce_serial_no)
 where a.fstart_time>=to_date(date_sub(from_unixtime(unix_timestamp()),365))
 
 
