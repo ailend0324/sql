@@ -1,4 +1,8 @@
-with category_info as (
+with time_params as (
+	select 
+		to_date(date_sub(from_unixtime(unix_timestamp()),365)) as start_date
+),
+category_info as (
 	select 
 		fserial_number,
 		case when fclass_name in ("平板","平板电脑") then "平板"
@@ -16,13 +20,16 @@ with category_info as (
 		else "手机" end as fclass
 	from (
 		select 
-			*,
+			fserial_number,
+			fclass_name,
+			fend_time,
 			row_number() over(partition by fserial_number order by fend_time asc) as num
 		from drt.drt_my33310_detection_t_detect_record 
 		where fdet_type=0
 		and fis_deleted=0
 		and freport_type=0
 		and fverdict<>"测试单"
+		and to_date(fend_time) >= (select start_date from time_params)
 	) t
 	where num=1
 )
@@ -30,27 +37,27 @@ select
  		to_date(fgetin_time) as time_by,
  		case when left(fseries_number,2)='BM' then "寄卖"
         else "回收" end as ftype,
- 		case when right(left(fseries_number,6),4)="0112" then "东莞" 
-        	 when right(left(fseries_number,6),2)="16" then "杭州"
-    else "深圳" end as fwarehouse,
+		case when right(left(fseries_number,6),4)="0112" then "东莞" 
+		 	 when right(left(fseries_number,6),2)="16" then "杭州"
+	   else "深圳" end as fwarehouse,
 		coalesce(c.fclass, "手机") as fclass,
 		count(fseries_number) as num 
 from drt.drt_my33310_recycle_t_order 
 left join category_info as c on fseries_number=c.fserial_number
-where to_date(fgetin_time)>='2024-01-01'
+where to_date(fgetin_time) >= (select start_date from time_params)
 and ftest=0
 group by 1,2,3,4
 union all
 select 
  		to_date(freceive_time) as time_by,
  		"验机" as ftype,
- 		case when left(fhost_barcode,3)="020" then "杭州"
-        	 when left(fhost_barcode,3)="010" then "深圳"
-             when left(fhost_barcode,3)="050" then "东莞"
+		case when left(fhost_barcode,3)="020" then "杭州"
+		 	 when left(fhost_barcode,3)="010" then "深圳"
+	            when left(fhost_barcode,3)="050" then "东莞"
 	   	else "" end as fwarehouse,
 		coalesce(c.fclass, "手机") as fclass,
 		count(fhost_barcode) as num 
  from dws.dws_xy_yhb_detail as a
  left join category_info as c on a.fhost_barcode=c.fserial_number
-where to_date(freceive_time)>='2024-01-01'
+where to_date(freceive_time) >= (select start_date from time_params)
 group by 1,2,3,4

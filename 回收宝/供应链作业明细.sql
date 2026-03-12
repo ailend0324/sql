@@ -28,7 +28,7 @@ select *,
     -- 就像根据编号格式区分零件和整机
     
 from dws.dws_instock_details              -- 从"入库明细表"查找数据
-where funpack_time>=to_date(date_sub(from_unixtime(unix_timestamp()),30))  -- 只看最近30天的记录
+where funpack_time>=to_date(date_sub(from_unixtime(unix_timestamp()),200))  -- 只看最近200天的记录
 and funpack_user not in("于炉烨","张晓梦","徐晶")  -- 排除这3个操作员的记录
 and left(fseries_number,2) not like "%YZ%"  -- 排除"YZ"开头的序列号
 and left(fseries_number,2) not like "%NT%"  -- 排除"NT"开头的序列号
@@ -36,7 +36,7 @@ and left(fseries_number,2) not like "%NT%"  -- 排除"NT"开头的序列号
 /*
 💡 简单解释：
 这个查询就像问仓库主管：
-"给我看看最近30天各个仓库的作业情况，
+"给我看看最近200天各个仓库的作业情况，
 告诉我每批货物是在哪个仓库处理的，属于什么业务，是配件还是成品，
 但是不要包括某些特定操作员的记录和特殊类型的货物"
 

@@ -46,12 +46,9 @@ with detect as (       --取最新检测明细数据，取检测人、检测模�
             ) c 
     where c.num=1
 ),
-
--- 竞拍销售记录查询，获取鱼市B端的销售数据
 jp_sale as(
     select 
-        *,
-        freceiver_id as fbuyer_merchant_id
+        *
     from (
         select 
             *,
@@ -123,13 +120,10 @@ select
     a.fproduct_name, 
     a.fproject_name,
     a.fshop_name,
-    a.fbuyer_merchant_id,
-    case 
-        when d.fseries_number is not null then "阿里回流" else "其它渠道" end as "业务渠道",
-    case 
-        when c.frecycle_type=1 then "邮寄"
-        when c.frecycle_type=2 then "上门"
-        when c.frecycle_type=3 then "到店"
+    case when d.fseries_number is not null then "阿里回流" else "其它渠道" end as "业务渠道",
+    case when c.frecycle_type=1 then "邮寄"
+         when c.frecycle_type=2 then "上门"
+         when c.frecycle_type=3 then "到店"
     else null end as "回收类型",
     case when Fmerchant_jp=0 then "否" else "是" end as "是否异地上拍",
     left(a.fseries_number,2) as "渠道",
@@ -145,14 +139,14 @@ select
         when (b.Fdet_tpl=0 or b.Fdet_tpl=2 or b.Fdet_tpl=6 or b.Fdet_tpl=7) then "竞拍检测"
     else '其他' end as "检测渠道",
     case 
-        when b.Fdet_tpl = 0 then '标准检'
-        when b.Fdet_tpl = 1 then '大质检'
-        when b.Fdet_tpl = 2 then '新标准检测'
-  	    when b.Fdet_tpl = 3 then '产线检'
-        when b.Fdet_tpl = 4 then '34项检测'
-        when b.Fdet_tpl = 5 then '无忧购'
-        when b.Fdet_tpl = 6 then '寄卖plus'
-        when b.Fdet_tpl = 7 then '价格3.0的检测'
+      when b.Fdet_tpl = 0 then '标准检'
+      when b.Fdet_tpl = 1 then '大质检'
+      when b.Fdet_tpl = 2 then '新标准检测'
+  	  when b.Fdet_tpl = 3 then '产线检'
+      when b.Fdet_tpl = 4 then '34项检测'
+      when b.Fdet_tpl = 5 then '无忧购'
+      when b.Fdet_tpl = 6 then '寄卖plus'
+      when b.Fdet_tpl = 7 then '价格3.0的检测'
     else '其他' end as "检测模板",
 	if(g.fdetect_two_name is null,b.freal_name,g.fdetect_two_name) as fdetect_two_name,
     if(h.fdetect_three_name is null,b.freal_name,h.fdetect_three_name) as fdetect_three_name,
@@ -169,7 +163,7 @@ select
         when 1 then '仅退款'
         when 2 then '退货退款'
     end as faftersales_type
-
+	
 from jp_sale as a
 left join detect as b on a.fseries_number=b.fserial_number
 left join dws.dws_hs_order_detail as c on a.fseries_number=c.fseries_number
@@ -179,3 +173,8 @@ left join detect_three as h on a.fseries_number=h.fserial_number
 left join detect_three_pingmu as j on a.fseries_number=j.fserial_number
 left join drt.drt_my33306_hsb_sales_t_caihuoxia_after_sales as  cc on a.fseries_number=cc.fbusiness_id
 where a.fstart_time>=to_date(date_sub(from_unixtime(unix_timestamp()),720))
+
+
+
+
+

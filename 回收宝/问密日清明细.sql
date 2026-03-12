@@ -58,7 +58,7 @@ from (
         row_number()over(partition by forder_id order by fcreate_time asc) as num
     from drt.drt_my33310_recycle_t_order_remark
     where to_date(fcreate_time)>=to_date(date_sub(from_unixtime(unix_timestamp()),500))
-    and foperator_name in ('黄丽萍','郑静敏','杨香英','钟小慧','龚娟','田新月','赵婷婷')
+    and foperator_name in ('黄丽萍','郑静敏','杨香英','钟小慧','龚娟','田新月','赵婷婷','陈仪','陈佳娜')
 )t
 where num=1
 )
