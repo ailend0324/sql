@@ -20,14 +20,13 @@ with wenmi_works as (
     and from_unixtime(a.fadd_time) >= to_date(date_sub(from_unixtime(unix_timestamp()), 30))
 ),
 stock_in_record as (
-    -- 2. 查找入库记录 (CGRK 表示采购入库)
+    -- 2. 查找入库记录 (改用 dws_instock_details 表的 fstock_in_time，包含普通入库等各种入库场景)
     select
-        upper(fserial_no) as fseries_number,
-        max(fchange_time) as last_stock_in_time
-    from drt.drt_my33312_hsb_sales_product_t_pm_wms_stock_notify
-    where fchange_time >= to_date(date_sub(from_unixtime(unix_timestamp()), 30))
-    and fcmd = 'CGRK'
-    group by fserial_no
+        upper(fseries_number) as fseries_number,
+        max(fstock_in_time) as last_stock_in_time
+    from dws.dws_instock_details
+    where fstock_in_time >= to_date(date_sub(from_unixtime(unix_timestamp()), 30))
+    group by upper(fseries_number)
 ),
 return_request as (
     -- 3. 查找退货指令生成时间 (订单状态变更为"待退货"或"已取消"的时间)
