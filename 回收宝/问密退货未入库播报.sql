@@ -21,9 +21,6 @@ with wenmi_works as (
 ),
 cancel_action as (
     -- 2. 查找问密客服操作“取消订单”的记录
-    -- 从订单备注表(t_order_remark)中查找操作记录
-    -- 问密客服名单参考问密日清明细：黄丽萍,郑静敏,杨香英,钟小慧,龚娟,田新月,赵婷婷,陈仪,陈佳娜,宣兆鑫,胡家华等
-    -- 这里通过关联问密工单，只要是操作了取消，且该订单有问密工单即可，或者直接查状态变更表
     select
         x.forder_id,
         x.fauto_create_time as cancel_time
@@ -40,16 +37,17 @@ cancel_action as (
         where b.forder_status_name in ('取消中', '已取消')
           and a.fauto_create_time >= to_date(date_sub(now(), 30))
           -- 确保是人工操作的取消，排除系统自动取消或异步通知
-          and a.foperator_name not in ('系统', '异步通知', '异步取消', 'yangxiangying')
+          and a.foperator_name not in ('系统', '异步通知', '异步取消')
           and a.foperator_name is not null
           and a.foperator_name != ''
     ) x
     where x.num = 1
 ),
 stock_in_record as (
-    -- 3. 查找入库记录 (dws_instock_details 表的 fstock_in_time)
+    -- 3. 查找入库记录 (包含普通入库 freceive_time 和上架入库 fstock_in_time)
     select
         upper(fseries_number) as fseries_number,
+        max(freceive_time) as last_receive_time,
         max(fstock_in_time) as last_stock_in_time,
         max(freturn_out_time) as last_return_out_time,
         max(fsale_out_time) as last_sale_out_time
@@ -82,8 +80,10 @@ where
     -- 订单当前状态是已取消或取消中
     s.forder_status_name in ('取消中', '已取消')
     -- 3. 操作取消后没有入库/上架
-    -- 没有入库记录，或者入库时间早于取消操作时间（说明取消后还没入库）
+    -- 没有上架入库记录，或者上架入库时间早于取消操作时间
     and (i.last_stock_in_time is null or i.last_stock_in_time < c.cancel_time)
+    -- 增加普通入库(收货)过滤：没有普通入库记录，或者普通入库时间早于取消操作时间
+    and (i.last_receive_time is null or i.last_receive_time < c.cancel_time)
     -- 增加出库过滤：如果已经有退货出库或销售出库记录，说明已经处理完毕，不应再播报
     and (i.last_return_out_time is null or i.last_return_out_time < c.cancel_time)
     and (i.last_sale_out_time is null or i.last_sale_out_time < c.cancel_time)
