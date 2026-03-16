@@ -23,13 +23,17 @@ stock_in_record as (
     -- 2. 查找入库记录 (改用 dws_instock_details 表的 fstock_in_time，包含普通入库等各种入库场景)
     select
         upper(fseries_number) as fseries_number,
-        max(fstock_in_time) as last_stock_in_time
+        max(fstock_in_time) as last_stock_in_time,
+        max(freturn_out_time) as last_return_out_time,
+        max(fsale_out_time) as last_sale_out_time
     from dws.dws_instock_details
-    where fstock_in_time >= to_date(date_sub(from_unixtime(unix_timestamp()), 30))
+    where fseries_number is not null
     group by upper(fseries_number)
 ),
 return_request as (
-    -- 3. 查找退货指令生成时间 (订单状态变更为"待退货"或"已取消"的时间)
+    -- 3. 查找退货指令生成时间 (订单状态变更为"取消中"、"待退货"或"已取消"的【最早】时间)
+    -- 修复：不能取最新时间，因为有些订单是先"取消中" -> "普通入库" -> "已取消"
+    -- 如果取最新时间，会导致退货指令时间晚于入库时间，从而被误判为"未入库"
     select
         x.forder_id,
         x.fauto_create_time as frequest_endtime
@@ -37,11 +41,12 @@ return_request as (
         select
             a.forder_id,
             a.fauto_create_time,
-            row_number() over (partition by a.forder_id order by a.fauto_create_time desc) as num
+            -- 改为 asc，取最早的那次退货/取消指令时间
+            row_number() over (partition by a.forder_id order by a.fauto_create_time asc) as num
         from drt.drt_my33310_recycle_t_order_txn a
         inner join drt.drt_my33310_recycle_t_order_status b
             on a.forder_status = b.forder_status_id
-        where b.forder_status_name in ('待退货', '已取消')
+        where b.forder_status_name in ('取消中', '待退货', '已取消')
           and a.fauto_create_time >= to_date(date_sub(now(), 30))
     ) x
     where x.num = 1
@@ -72,6 +77,9 @@ where
     s.forder_status_name like '%已取消%'
     -- 未入库：没有入库记录，或者入库时间早于退货指令生成时间（说明退货指令生成后还没入库）
     and (i.last_stock_in_time is null or i.last_stock_in_time < r.frequest_endtime)
+    -- 增加出库过滤：如果已经有退货出库或销售出库记录，说明已经处理完毕，不应再播报
+    and (i.last_return_out_time is null or i.last_return_out_time < r.frequest_endtime)
+    and (i.last_sale_out_time is null or i.last_sale_out_time < r.frequest_endtime)
     -- >2小时未入库 (从退货指令生成时间开始计算)
     and (unix_timestamp(now()) - unix_timestamp(r.frequest_endtime)) / 3600 > 2
     -- 排除测试单
