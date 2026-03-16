@@ -2,7 +2,7 @@
 -- 需求：
 -- 1. 有问密工单（问密客服介入过的订单）
 -- 2. 问密客服操作了“取消订单”
--- 3. 操作了取消订单后2小时仍然没有入库/上架的，给出订单号
+-- 3. 当前时刻仍未入库/上架的订单（只要有入库记录就排除，不管入库时间），且取消时间已经超过2小时
 -- 4. 播报时间：10:00, 14:00, 17:00 (由调度系统控制，SQL只需查出符合条件的数据)
 
 with wenmi_works as (
@@ -79,14 +79,13 @@ left join stock_in_record as i on o.fseries_number = i.fseries_number
 where 
     -- 订单当前状态是已取消或取消中
     s.forder_status_name in ('取消中', '已取消')
-    -- 3. 操作取消后没有入库/上架
-    -- 没有上架入库记录，或者上架入库时间早于取消操作时间
-    and (i.last_stock_in_time is null or i.last_stock_in_time < c.cancel_time)
-    -- 增加普通入库(收货)过滤：没有普通入库记录，或者普通入库时间早于取消操作时间
-    and (i.last_receive_time is null or i.last_receive_time < c.cancel_time)
-    -- 增加出库过滤：如果已经有退货出库或销售出库记录，说明已经处理完毕，不应再播报
-    and (i.last_return_out_time is null or i.last_return_out_time < c.cancel_time)
-    and (i.last_sale_out_time is null or i.last_sale_out_time < c.cancel_time)
+    -- 3. 当前时刻仍未入库/上架
+    -- 只要有任何入库记录（不管时间早晚），一律排除
+    and i.last_stock_in_time is null
+    and i.last_receive_time is null
+    -- 只要有任何出库记录，一律排除
+    and i.last_return_out_time is null
+    and i.last_sale_out_time is null
     -- >2小时未入库 (从取消操作时间开始计算)
     and (unix_timestamp(now()) - unix_timestamp(c.cancel_time)) / 3600 > 2
     -- 排除测试单
