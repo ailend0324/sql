@@ -6,8 +6,8 @@ with
 -- 预计算时间参数，避免重复计算
 time_params as (
     select 
-        to_date(date_sub(from_unixtime(unix_timestamp()),50)) as recent_date,  -- 50天前
-        to_date(date_sub(from_unixtime(unix_timestamp()),25)) as short_recent_date,  -- 25天前
+        to_date(date_sub(from_unixtime(unix_timestamp()),1200)) as recent_date,  -- 50天前
+        to_date(date_sub(from_unixtime(unix_timestamp()),600)) as short_recent_date,  -- 25天前
         '2024-01-01' as start_date
 ),
 
@@ -330,7 +330,7 @@ select
 from recent_data
 cross join time_params as tp
 where fzhibao_update_time >= tp.recent_date
-and (fzhibao_status=50 or fzhibao_status=60)
+and fzhibao_status=50 or fzhibao_status=60
 group by 1,2,3,4
 
 union all
@@ -386,5 +386,4 @@ from recent_data
 cross join time_params as tp
 where frequest_put_time >= tp.recent_date
 group by 1,2,3,4
-
 
