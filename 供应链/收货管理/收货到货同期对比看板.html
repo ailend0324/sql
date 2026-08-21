@@ -813,10 +813,34 @@ function exportCSV(){
     row.push(p, cu, r === null ? "" : r.toFixed(1));
     lines.push(row.join(","));
   }
-  const blob = new Blob(["\uFEFF" + lines.join("\n")], { type:"text/csv;charset=utf-8" });
+  const text = "\uFEFF" + lines.join("\n");
+  const base = `到货同期对比_${state.gran === "week" ? "周" : "日"}_${state.wh === "__all" ? "全部仓" : state.wh}`;
+  saveFile(base, text);
+}
+// 本地直接打开时走 Blob 链接；在 Artifact 里跑时走 downloads 能力（浏览器沙箱会拦掉普通下载链接）
+async function saveFile(base, text){
+  const btn = document.getElementById("exportBtn");
+  const say = t => { btn.textContent = t; setTimeout(() => btn.textContent = "导出对比表 CSV", 2600); };
+  if(typeof claude !== "undefined" && claude && typeof claude.use === "function"){
+    let dl = null;
+    try{ dl = await claude.use("downloads"); }catch(e){}
+    if(dl){
+      for(const ext of ["csv", "txt"]){
+        try{ await dl.save({ filename: base + "." + ext, data: text }); return; }
+        catch(err){
+          const code = err && err.code;
+          if(code === "extension_not_enabled") continue;      // csv 没开就退回 txt
+          if(code === "declined") return;                      // 用户自己取消了，不用提示
+          say("导出失败：" + (code || "unknown")); return;
+        }
+      }
+      say("导出失败：不支持的文件类型"); return;
+    }
+  }
+  const blob = new Blob([text], { type:"text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url; a.download = `到货同期对比_${state.gran === "week" ? "周" : "日"}_${state.wh === "__all" ? "全部仓" : state.wh}.csv`;
+  a.href = url; a.download = base + ".csv";
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
