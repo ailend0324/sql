@@ -1,0 +1,921 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>到货同期对比看板</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f4f6f8;
+  --surface:#ffffff;
+  --surface-sunk:#eef1f4;
+  --line:#dfe4ea;
+  --line-strong:#c8d0d9;
+  --ink:#141a21;
+  --ink-2:#525f6e;
+  --ink-3:#7d8896;
+  --grid:#eaeef2;
+  --prev:#8a8985;
+  --s-xy:#2a78d6;
+  --s-tm:#eb6834;
+  --s-yh:#1baf7a;
+  --s-other:#4a3aa7;
+  --s-bm:#e87ba4;
+  --up:#008300;
+  --down:#e34948;
+  --shadow:0 1px 2px rgba(20,26,33,.06), 0 8px 24px -16px rgba(20,26,33,.28);
+  --radius:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme: dark;
+    --bg:#111418;
+    --surface:#191d22;
+    --surface-sunk:#22272d;
+    --line:#2b3138;
+    --line-strong:#3b434c;
+    --ink:#eef1f5;
+    --ink-2:#a3adb9;
+    --ink-3:#7e8794;
+    --grid:#252b32;
+    --prev:#8a8985;
+    --s-xy:#3987e5;
+    --s-tm:#d95926;
+    --s-yh:#199e70;
+    --s-other:#9085e9;
+    --s-bm:#d55181;
+    --up:#4bbd4b;
+    --down:#e66767;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#111418;
+  --surface:#191d22;
+  --surface-sunk:#22272d;
+  --line:#2b3138;
+  --line-strong:#3b434c;
+  --ink:#eef1f5;
+  --ink-2:#a3adb9;
+  --ink-3:#7e8794;
+  --grid:#252b32;
+  --prev:#8a8985;
+  --s-xy:#3987e5;
+  --s-tm:#d95926;
+  --s-yh:#199e70;
+  --s-other:#9085e9;
+  --s-bm:#d55181;
+  --up:#4bbd4b;
+  --down:#e66767;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:"IBM Plex Sans","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",sans-serif;
+  font-size:14px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1280px;margin:0 auto;padding:32px 24px 72px;display:flex;flex-direction:column;gap:24px;}
+
+/* ---------- header ---------- */
+.masthead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 32px;}
+.masthead h1{
+  margin:0;font-size:26px;font-weight:600;letter-spacing:-.01em;line-height:1.25;text-wrap:balance;
+}
+.eyebrow{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin:0 0 6px;
+}
+.masthead p.sub{margin:6px 0 0;color:var(--ink-2);max-width:62ch;}
+.periods{display:flex;gap:10px;flex-wrap:wrap;}
+.period{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:8px 12px;display:flex;flex-direction:column;gap:1px;box-shadow:var(--shadow);
+}
+.period b{font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;}
+.period span{font-size:11px;color:var(--ink-3);letter-spacing:.06em;}
+.period.cur{border-color:var(--line-strong);}
+
+/* ---------- banners ---------- */
+.banner{
+  border-radius:var(--radius);padding:11px 14px;display:flex;gap:12px;align-items:flex-start;
+  font-size:13px;border:1px solid var(--line);background:var(--surface-sunk);color:var(--ink-2);
+}
+.banner.demo{border-color:color-mix(in srgb,var(--s-tm) 45%,var(--line));background:color-mix(in srgb,var(--s-tm) 8%,var(--surface));color:var(--ink);}
+.banner strong{color:var(--ink);}
+.banner .grow{flex:1;min-width:0;}
+
+/* ---------- panels ---------- */
+.panel{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);
+}
+.panel-hd{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;
+  padding:14px 18px;border-bottom:1px solid var(--line);
+}
+.panel-hd h2{margin:0;font-size:15px;font-weight:600;}
+.panel-hd .note{font-size:12px;color:var(--ink-3);}
+.panel-bd{padding:18px;}
+
+/* ---------- data intake ---------- */
+.intake{display:grid;grid-template-columns:1.1fr 1fr;gap:18px;}
+@media (max-width:760px){.intake{grid-template-columns:1fr;}}
+.drop{
+  border:1.5px dashed var(--line-strong);border-radius:var(--radius);background:var(--surface-sunk);
+  padding:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  text-align:center;min-height:170px;transition:border-color .15s,background .15s;
+}
+.drop.over{border-color:var(--s-xy);background:color-mix(in srgb,var(--s-xy) 10%,var(--surface));}
+.drop p{margin:0;color:var(--ink-2);font-size:13px;}
+.steps{margin:0;padding-left:20px;color:var(--ink-2);font-size:13px;display:flex;flex-direction:column;gap:7px;}
+.steps code{
+  font-family:"IBM Plex Mono",monospace;font-size:12px;background:var(--surface-sunk);
+  border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--ink);
+}
+textarea{
+  width:100%;min-height:110px;resize:vertical;border-radius:8px;border:1px solid var(--line);
+  background:var(--surface-sunk);color:var(--ink);padding:10px 12px;font-family:"IBM Plex Mono",monospace;
+  font-size:12px;line-height:1.5;
+}
+textarea:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{
+  outline:2px solid var(--s-xy);outline-offset:2px;
+}
+
+/* ---------- controls ---------- */
+button,.btn{
+  font:inherit;font-size:13px;border-radius:8px;border:1px solid var(--line-strong);
+  background:var(--surface);color:var(--ink);padding:7px 14px;cursor:pointer;
+  display:inline-flex;align-items:center;gap:7px;transition:background .12s,border-color .12s;
+}
+button:hover,.btn:hover{background:var(--surface-sunk);}
+button.primary{background:var(--ink);color:var(--surface);border-color:var(--ink);}
+button.primary:hover{opacity:.88;background:var(--ink);}
+button.ghost{border-color:transparent;background:transparent;color:var(--ink-2);padding:6px 9px;}
+button.ghost:hover{background:var(--surface-sunk);color:var(--ink);}
+.controls{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;}
+.ctl{display:flex;align-items:center;gap:8px;}
+.ctl > label{font-size:12px;color:var(--ink-3);letter-spacing:.04em;}
+select{
+  font:inherit;font-size:13px;padding:6px 10px;border-radius:8px;border:1px solid var(--line-strong);
+  background:var(--surface);color:var(--ink);cursor:pointer;
+}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden;}
+.seg button{border:0;border-radius:0;padding:6px 12px;background:var(--surface);}
+.seg button + button{border-left:1px solid var(--line);}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface);}
+.chips{display:flex;flex-wrap:wrap;gap:8px;}
+.chip{
+  display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line-strong);border-radius:999px;
+  padding:5px 12px 5px 9px;background:var(--surface);cursor:pointer;font-size:13px;color:var(--ink-2);
+}
+.chip .dot{width:9px;height:9px;border-radius:3px;background:currentColor;flex:none;}
+.chip[aria-pressed="true"]{color:var(--ink);border-color:var(--line-strong);background:var(--surface-sunk);font-weight:500;}
+.chip[aria-pressed="false"]{opacity:.55;}
+.chip[aria-pressed="false"] .dot{background:var(--ink-3)!important;}
+
+/* ---------- KPI ---------- */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;}
+.kpi{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:16px 18px 15px;position:relative;overflow:hidden;
+  display:flex;flex-direction:column;gap:3px;
+}
+.kpi::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--accent,var(--ink-3));}
+.kpi .name{font-size:13px;color:var(--ink-2);font-weight:500;}
+.kpi .big{
+  font-family:"IBM Plex Mono",monospace;font-size:30px;font-weight:600;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;line-height:1.15;
+}
+.kpi .meta{font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums;}
+.kpi .yoy{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:500;font-variant-numeric:tabular-nums;margin-top:4px;}
+.yoy.up{color:var(--up);} .yoy.down{color:var(--down);} .yoy.flat{color:var(--ink-3);}
+
+/* ---------- charts ---------- */
+.chart-host{position:relative;width:100%;}
+.chart-host svg{display:block;width:100%;height:auto;overflow:visible;}
+.tip{
+  position:absolute;pointer-events:none;opacity:0;transform:translate(-50%,0);
+  background:var(--surface);border:1px solid var(--line-strong);border-radius:8px;
+  box-shadow:var(--shadow);padding:9px 11px;font-size:12px;white-space:nowrap;z-index:5;
+  transition:opacity .1s;
+}
+.tip .t-date{font-weight:600;margin-bottom:5px;font-family:"IBM Plex Mono",monospace;}
+.tip table{border-collapse:collapse;}
+.tip td{padding:1px 0;}
+.tip td.k{color:var(--ink-2);padding-right:12px;}
+.tip td.v{text-align:right;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-weight:500;}
+.tip .sw{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;vertical-align:1px;}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--ink-2);}
+.legend i{display:inline-block;width:16px;height:0;border-top-width:2px;border-top-style:solid;margin-right:6px;vertical-align:4px;}
+.facets{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;}
+.facet{border:1px solid var(--line);border-radius:var(--radius);padding:14px 14px 8px;background:var(--surface);}
+.facet-hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px;}
+.facet-hd .fname{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;}
+.facet-hd .fname .dot{width:9px;height:9px;border-radius:3px;flex:none;}
+.facet-hd .fmeta{font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums;}
+
+/* ---------- table ---------- */
+.table-scroll{overflow-x:auto;max-height:620px;overflow-y:auto;border-radius:0 0 var(--radius) var(--radius);}
+table.data{border-collapse:separate;border-spacing:0;width:100%;font-size:13px;font-variant-numeric:tabular-nums;}
+table.data th,table.data td{padding:7px 12px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line);}
+table.data th{
+  position:sticky;top:0;background:var(--surface);z-index:2;font-weight:500;color:var(--ink-2);
+  font-size:12px;border-bottom:1px solid var(--line-strong);
+}
+table.data th.grp{text-align:center;border-left:1px solid var(--line);}
+table.data th:first-child,table.data td:first-child{
+  text-align:left;position:sticky;left:0;background:var(--surface);z-index:1;
+  font-family:"IBM Plex Mono",monospace;
+}
+table.data th:first-child{z-index:3;}
+table.data tbody tr:hover td{background:var(--surface-sunk);}
+table.data td.sep{border-left:1px solid var(--line);}
+table.data tfoot td{
+  position:sticky;bottom:0;background:var(--surface-sunk);font-weight:600;border-top:1px solid var(--line-strong);
+}
+table.data tfoot td:first-child{background:var(--surface-sunk);}
+.delta{font-size:12px;}
+.hide{display:none!important;}
+.empty-note{padding:40px 18px;text-align:center;color:var(--ink-3);font-size:13px;}
+footer.foot{color:var(--ink-3);font-size:12px;border-top:1px solid var(--line);padding-top:16px;line-height:1.7;}
+footer.foot code{font-family:"IBM Plex Mono",monospace;background:var(--surface-sunk);border:1px solid var(--line);border-radius:4px;padding:1px 5px;}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div>
+      <p class="eyebrow">供应链 · 收货管理</p>
+      <h1>到货同期对比看板</h1>
+      <p class="sub">回收（闲鱼 / 天猫）与验货宝的仓库实收量，按天对比 2024 与 2025 年 9/15–11/30 同期。数据来自 Hue 查询 <code style="font-family:'IBM Plex Mono',monospace">收货到货同期对比_2024vs2025.sql</code> 的 CSV 导出。</p>
+    </div>
+    <div class="periods">
+      <div class="period"><span>去年同期</span><b>2024-09-15 → 11-30</b></div>
+      <div class="period cur"><span>本期</span><b>2025-09-15 → 11-30</b></div>
+      <div class="period"><span>区间长度</span><b>77 天 / 11 周</b></div>
+    </div>
+  </header>
+
+  <div class="banner demo hide" id="demoBanner">
+    <div class="grow"><strong>示例数据</strong> —— 当前图表由本页内置的模拟数字生成，<strong>不是真实业务数据</strong>，仅用于预览版式。载入 Hue 导出的 CSV 后会自动替换。</div>
+    <button class="ghost" id="clearDemo">清空</button>
+  </div>
+
+  <section class="panel" id="intakePanel">
+    <div class="panel-hd">
+      <h2>载入查询结果</h2>
+      <span class="note">CSV 需含表头：fyear, fdate, fmd, day_index, fbiz, fwarehouse, recv_cnt</span>
+    </div>
+    <div class="panel-bd">
+      <div class="intake">
+        <div class="drop" id="drop">
+          <p><strong>把 Hue 导出的 CSV 拖到这里</strong></p>
+          <p>或</p>
+          <button class="primary" id="pickBtn">选择文件</button>
+          <input type="file" id="file" accept=".csv,.tsv,.txt" hidden>
+          <p style="font-size:12px;color:var(--ink-3)">支持 CSV / TSV，UTF-8 或带 BOM</p>
+        </div>
+        <div>
+          <ol class="steps">
+            <li>在 Hue 打开 <code>供应链/收货管理/收货到货同期对比_2024vs2025.sql</code> 并执行主查询</li>
+            <li>结果区 <code>Download → CSV</code>（保留表头）</li>
+            <li>把文件拖进左边，或把内容粘到下面的框里</li>
+          </ol>
+          <textarea id="paste" placeholder="也可以直接粘贴 CSV 文本…" style="margin-top:12px"></textarea>
+          <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
+            <button class="primary" id="loadPaste">解析粘贴内容</button>
+            <button id="loadDemo">载入示例数据</button>
+          </div>
+          <p id="parseMsg" style="margin:10px 0 0;font-size:12px;color:var(--ink-3)"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel hide" id="ctlPanel">
+    <div class="panel-bd">
+      <div class="controls">
+        <div class="ctl">
+          <label for="wh">仓库</label>
+          <select id="wh"><option value="__all">全部仓库</option></select>
+        </div>
+        <div class="ctl">
+          <label>粒度</label>
+          <div class="seg" id="granSeg">
+            <button data-v="day" aria-pressed="true">按天</button>
+            <button data-v="week" aria-pressed="false">按周</button>
+          </div>
+        </div>
+        <div class="ctl">
+          <label>对齐</label>
+          <div class="seg" id="alignSeg">
+            <button data-v="date" aria-pressed="true">同日期</button>
+            <button data-v="dow" aria-pressed="false">同星期</button>
+          </div>
+        </div>
+        <div class="ctl" style="flex:1;min-width:240px;justify-content:flex-end">
+          <div class="chips" id="bizChips"></div>
+        </div>
+        <button id="reopen" class="ghost">换一份数据</button>
+      </div>
+      <p style="margin:10px 0 0;font-size:12px;color:var(--ink-3)" id="alignHint"></p>
+    </div>
+  </section>
+
+  <section class="kpis hide" id="kpis"></section>
+
+  <section class="panel hide" id="mainPanel">
+    <div class="panel-hd">
+      <h2>每日到货量 · 合计</h2>
+      <div class="legend">
+        <span><i style="border-top-color:var(--prev);border-top-style:dashed"></i>2024 同期</span>
+        <span><i style="border-top-color:var(--ink)"></i>2025 本期</span>
+      </div>
+    </div>
+    <div class="panel-bd">
+      <div class="chart-host" id="mainChart"></div>
+    </div>
+  </section>
+
+  <section class="panel hide" id="facetPanel">
+    <div class="panel-hd">
+      <h2>分业务线每日到货量</h2>
+      <span class="note">纵轴各自独立，看趋势不看绝对高低</span>
+    </div>
+    <div class="panel-bd"><div class="facets" id="facets"></div></div>
+  </section>
+
+  <section class="panel hide" id="tablePanel">
+    <div class="panel-hd">
+      <h2>每日到货明细</h2>
+      <button id="exportBtn">导出对比表 CSV</button>
+    </div>
+    <div class="table-scroll" id="tableHost"></div>
+  </section>
+
+  <footer class="foot">
+    <div><strong>口径</strong> · 回收 = <code>drt.drt_my33310_recycle_t_order.fgetin_time</code>（仓库收货时间，剔除测试单与 YZ/NT 单）；验货宝 = <code>dws.dws_xy_yhb_detail.freceive_time</code>。单位为条码数（去重），一条码 = 一台机器。</div>
+    <div style="margin-top:6px"><strong>业务线归属</strong> · 条码前缀优先（XY/YJ→闲鱼，TM/TY→天猫，BM/BB→寄卖），前缀无法判定时回退到「合作项目 + 渠道名」。</div>
+    <div style="margin-top:6px"><strong>同星期对齐</strong> · 到货量有明显周内节律，2024-09-15 是周日、2025-09-15 是周一，直接按日期对比会错开一天；需要看节律时切到「同星期」。</div>
+  </footer>
+</div>
+
+<script>
+"use strict";
+/* ══════════════════════════════════════════════════════════════════════════
+   到货同期对比看板 —— 纯前端，无外部依赖
+   数据流：CSV 文本 → parseCSV → normalize → state.rows → 各视图渲染
+   ══════════════════════════════════════════════════════════════════════════ */
+
+const BIZ_META = {
+  "回收-闲鱼": { key:"xy",    color:"var(--s-xy)",    order:1, primary:true  },
+  "回收-天猫": { key:"tm",    color:"var(--s-tm)",    order:2, primary:true  },
+  "验货宝":    { key:"yh",    color:"var(--s-yh)",    order:3, primary:true  },
+  "回收-其他": { key:"other", color:"var(--s-other)", order:4, primary:false },
+  "寄卖":      { key:"bm",    color:"var(--s-bm)",    order:5, primary:false },
+  "售后退回":  { key:"as",    color:"var(--ink-3)",   order:6, primary:false }
+};
+const CUR_YEAR = "2025", PREV_YEAR = "2024";
+const PERIOD = { start:"09-15", end:"11-30", days:77 };
+
+const state = {
+  rows: [],          // {year,date,md,dayIndex,dow,biz,warehouse,cnt}
+  warehouses: [],
+  bizAll: [],
+  bizOn: new Set(),
+  wh: "__all",
+  gran: "day",
+  align: "date",
+  isDemo: false,
+  dowShift: 0        // 2024 需要向后挪多少天才与 2025 的星期对齐
+};
+
+/* ── CSV 解析（RFC4180，自动识别逗号 / 制表符）────────────────────────── */
+function parseCSV(text){
+  text = text.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").trim();
+  if(!text) return [];
+  const head = text.slice(0, text.indexOf("\n") < 0 ? text.length : text.indexOf("\n"));
+  const delim = (head.split("\t").length > head.split(",").length) ? "\t" : ",";
+  const rows = []; let row = [], field = "", q = false;
+  for(let i = 0; i < text.length; i++){
+    const c = text[i];
+    if(q){
+      if(c === '"'){ if(text[i+1] === '"'){ field += '"'; i++; } else q = false; }
+      else field += c;
+    } else if(c === '"'){ q = true; }
+    else if(c === delim){ row.push(field); field = ""; }
+    else if(c === "\n"){ row.push(field); rows.push(row); row = []; field = ""; }
+    else field += c;
+  }
+  row.push(field); rows.push(row);
+  return rows.filter(r => r.some(v => v.trim() !== ""));
+}
+
+/* ── 表头映射：容忍列顺序变化、Hue 的 "t.fdate" 前缀、中文表头 ───────── */
+const HEADER_ALIASES = {
+  date:      ["fdate","日期","收货日期","dt","ds","time_by","ftime_byday"],
+  year:      ["fyear","年份","year"],
+  md:        ["fmd","月日","md"],
+  dayIndex:  ["day_index","dayindex","第n天","idx"],
+  biz:       ["fbiz","业务线","业务类型","biz","type","ftype"],
+  warehouse: ["fwarehouse","仓库","仓","warehouse","place"],
+  cnt:       ["recv_cnt","到货量","收货量","num","cnt","count","getnum","收货数"]
+};
+function mapHeaders(headerRow){
+  const norm = h => h.trim().toLowerCase().replace(/^[a-z0-9_]+\./, "").replace(/[`"']/g, "");
+  const idx = {};
+  headerRow.forEach((h, i) => {
+    const n = norm(h);
+    for(const field in HEADER_ALIASES){
+      if(idx[field] !== undefined) continue;
+      if(HEADER_ALIASES[field].some(a => a.toLowerCase() === n)) idx[field] = i;
+    }
+  });
+  return idx;
+}
+
+function normalize(table){
+  if(!table.length) throw new Error("文件是空的");
+  const idx = mapHeaders(table[0]);
+  if(idx.date === undefined || idx.cnt === undefined || idx.biz === undefined){
+    throw new Error("认不出表头。至少需要 fdate、fbiz、recv_cnt 三列（导出时请勾选表头）");
+  }
+  const out = [];
+  for(let r = 1; r < table.length; r++){
+    const raw = table[r];
+    const date = (raw[idx.date] || "").trim().slice(0, 10);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
+    const cnt = Number(String(raw[idx.cnt] ?? "").replace(/[, ]/g, ""));
+    if(!Number.isFinite(cnt)) continue;
+    const biz = (raw[idx.biz] || "未分类").trim();
+    const warehouse = idx.warehouse !== undefined ? ((raw[idx.warehouse] || "未知仓").trim() || "未知仓") : "全部";
+    const d = new Date(date + "T00:00:00Z");
+    out.push({
+      year: date.slice(0, 4),
+      date, md: date.slice(5),
+      dayIndex: idx.dayIndex !== undefined && raw[idx.dayIndex] !== "" && Number.isFinite(Number(raw[idx.dayIndex]))
+                ? Number(raw[idx.dayIndex])
+                : Math.round((d - new Date(date.slice(0,4) + "-" + PERIOD.start + "T00:00:00Z")) / 864e5),
+      dow: d.getUTCDay(),
+      biz, warehouse, cnt
+    });
+  }
+  if(!out.length) throw new Error("没有解析出任何有效数据行");
+  return out;
+}
+
+/* ── 载入 ──────────────────────────────────────────────────────────────── */
+function loadRows(rows, isDemo){
+  state.rows = rows;
+  state.isDemo = !!isDemo;
+
+  const years = [...new Set(rows.map(r => r.year))].sort();
+  state.warehouses = [...new Set(rows.map(r => r.warehouse))].sort();
+  state.bizAll = [...new Set(rows.map(r => r.biz))]
+    .sort((a, b) => (BIZ_META[a]?.order ?? 99) - (BIZ_META[b]?.order ?? 99) || a.localeCompare(b));
+  state.bizOn = new Set(state.bizAll.filter(b => BIZ_META[b]?.primary !== false));
+  if(!state.bizOn.size) state.bizOn = new Set(state.bizAll);
+
+  // 星期对齐位移：让去年同期的星期几与本期一致
+  const startDow = y => {
+    const hit = rows.filter(r => r.year === y).sort((a, b) => a.date < b.date ? -1 : 1)[0];
+    return hit ? (hit.dow - hit.dayIndex % 7 + 700) % 7 : null;
+  };
+  const a = startDow(PREV_YEAR), b = startDow(CUR_YEAR);
+  state.dowShift = (a === null || b === null) ? 0 : (b - a + 7) % 7;
+
+  const whSel = document.getElementById("wh");
+  whSel.innerHTML = '<option value="__all">全部仓库</option>' +
+    state.warehouses.map(w => `<option value="${esc(w)}">${esc(w)}</option>`).join("");
+  whSel.value = state.wh = "__all";
+
+  document.getElementById("bizChips").innerHTML = state.bizAll.map(b => {
+    const m = BIZ_META[b] || { color:"var(--ink-3)" };
+    return `<button class="chip" data-biz="${esc(b)}" aria-pressed="${state.bizOn.has(b)}" style="--c:${m.color}">
+      <span class="dot" style="background:${m.color}"></span>${esc(b)}</button>`;
+  }).join("");
+
+  document.getElementById("demoBanner").classList.toggle("hide", !isDemo);
+  ["ctlPanel","kpis","mainPanel","facetPanel","tablePanel"].forEach(id => document.getElementById(id).classList.remove("hide"));
+  document.getElementById("intakePanel").classList.add("hide");
+
+  const missing = [PREV_YEAR, CUR_YEAR].filter(y => !years.includes(y));
+  msg(`已载入 ${rows.length.toLocaleString("zh-CN")} 行 · 年份 ${years.join(" / ")} · 业务线 ${state.bizAll.length} 个 · 仓库 ${state.warehouses.length} 个`
+      + (missing.length ? ` · ⚠ 缺少 ${missing.join("、")} 年数据` : ""));
+
+  if(!isDemo) saveLocal(rows);
+  render();
+}
+
+function saveLocal(rows){
+  try{ localStorage.setItem("recv-cmp-v1", JSON.stringify({ t: Date.now(), rows })); }catch(e){}
+}
+function restoreLocal(){
+  try{
+    const raw = localStorage.getItem("recv-cmp-v1");
+    if(!raw) return false;
+    const o = JSON.parse(raw);
+    if(!o || !Array.isArray(o.rows) || !o.rows.length) return false;
+    loadRows(o.rows, false);
+    return true;
+  }catch(e){ return false; }
+}
+
+/* ── 聚合 ──────────────────────────────────────────────────────────────── */
+function activeRows(){
+  return state.rows.filter(r =>
+    state.bizOn.has(r.biz) && (state.wh === "__all" || r.warehouse === state.wh));
+}
+// 返回 {buckets:[{label,fullLabel}], series:{ biz:{cur:[],prev:[]} }, totals:{cur:[],prev:[]}}
+function buildSeries(){
+  const rows = activeRows();
+  const n = state.gran === "week" ? Math.ceil(PERIOD.days / 7) : PERIOD.days;
+  const bucketOf = (r) => {
+    let i = r.dayIndex;
+    if(state.align === "dow" && r.year === PREV_YEAR) i -= state.dowShift;
+    if(i < 0 || i >= PERIOD.days) return -1;
+    return state.gran === "week" ? Math.floor(i / 7) : i;
+  };
+  const bizList = state.bizAll.filter(b => state.bizOn.has(b));
+  const series = {};
+  bizList.forEach(b => series[b] = { cur: new Array(n).fill(0), prev: new Array(n).fill(0) });
+  const totals = { cur: new Array(n).fill(0), prev: new Array(n).fill(0) };
+  const dateOfBucket = { cur: new Array(n).fill(null), prev: new Array(n).fill(null) };
+
+  rows.forEach(r => {
+    const i = bucketOf(r);
+    if(i < 0) return;
+    const lane = r.year === CUR_YEAR ? "cur" : (r.year === PREV_YEAR ? "prev" : null);
+    if(!lane) return;
+    series[r.biz][lane][i] += r.cnt;
+    totals[lane][i] += r.cnt;
+    if(state.gran === "day") dateOfBucket[lane][i] = r.date;
+  });
+
+  const base = new Date(CUR_YEAR + "-" + PERIOD.start + "T00:00:00Z");
+  const buckets = [];
+  for(let i = 0; i < n; i++){
+    if(state.gran === "week"){
+      const s = new Date(base.getTime() + i * 7 * 864e5), e = new Date(Math.min(base.getTime() + (i * 7 + 6) * 864e5, base.getTime() + (PERIOD.days - 1) * 864e5));
+      buckets.push({ label: "W" + (i + 1), full: `第 ${i+1} 周（${fmtMD(s)} ~ ${fmtMD(e)}）` });
+    }else{
+      const d = new Date(base.getTime() + i * 864e5);
+      buckets.push({ label: fmtMD(d), full: fmtMD(d) + " " + "日一二三四五六"[d.getUTCDay()] + (state.align === "dow" ? "（同星期对齐）" : ""), date: d });
+    }
+  }
+  return { buckets, series, totals, bizList, dateOfBucket };
+}
+const fmtMD = d => String(d.getUTCMonth() + 1).padStart(2, "0") + "-" + String(d.getUTCDate()).padStart(2, "0");
+const sum = a => a.reduce((x, y) => x + y, 0);
+const nf = v => v.toLocaleString("zh-CN");
+function yoy(cur, prev){
+  if(!prev) return null;
+  return (cur - prev) / prev * 100;
+}
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+
+/* ── 渲染入口 ──────────────────────────────────────────────────────────── */
+let lastBuild = null;
+function render(){
+  const b = lastBuild = buildSeries();
+  document.getElementById("alignHint").textContent = state.align === "dow"
+    ? `同星期对齐：2024 数据整体后移 ${state.dowShift} 天，使两年的星期几一一对应（横轴日期标签仍按 2025 显示）。`
+    : "同日期对齐：直接按月-日对比。注意两年的星期几错开，周内节律会有位移。";
+  renderKPIs(b);
+  renderMain(b);
+  renderFacets(b);
+  renderTable(b);
+}
+
+function renderKPIs(b){
+  const host = document.getElementById("kpis");
+  const cards = [];
+  const tc = sum(b.totals.cur), tp = sum(b.totals.prev);
+  cards.push(kpiCard("合计到货", tc, tp, "var(--ink-2)"));
+  b.bizList.forEach(biz => {
+    const m = BIZ_META[biz] || { color:"var(--ink-3)" };
+    cards.push(kpiCard(biz, sum(b.series[biz].cur), sum(b.series[biz].prev), m.color));
+  });
+  host.innerHTML = cards.join("");
+}
+function kpiCard(name, cur, prev, color){
+  const r = yoy(cur, prev);
+  const cls = r === null ? "flat" : (r > 0.05 ? "up" : r < -0.05 ? "down" : "flat");
+  const arrow = r === null ? "—" : (r > 0.05 ? "▲" : r < -0.05 ? "▼" : "＝");
+  const txt = r === null ? "去年同期无数据" : `${arrow} ${r > 0 ? "+" : ""}${r.toFixed(1)}%`;
+  const avg = cur / PERIOD.days;
+  return `<article class="kpi" style="--accent:${color}">
+    <div class="name">${esc(name)}</div>
+    <div class="big">${nf(cur)}</div>
+    <div class="meta">2024 同期 ${nf(prev)} · 日均 ${avg.toFixed(0)}</div>
+    <div class="yoy ${cls}">${txt}<span style="color:var(--ink-3);font-weight:400">${r === null ? "" : `（${cur - prev > 0 ? "+" : ""}${nf(cur - prev)}）`}</span></div>
+  </article>`;
+}
+
+/* ── SVG 折线图 ────────────────────────────────────────────────────────── */
+function lineChart(host, opt){
+  const W = Math.max(320, host.clientWidth || 640);
+  const H = opt.height || 300;
+  const P = { t:14, r:14, b:30, l:46 };
+  const iw = W - P.l - P.r, ih = H - P.t - P.b;
+  const n = opt.buckets.length;
+  const maxV = Math.max(1, ...opt.series.flatMap(s => s.values));
+  const ticks = niceTicks(maxV, 4);
+  const yMax = ticks[ticks.length - 1];
+  const X = i => P.l + (n === 1 ? iw / 2 : i * iw / (n - 1));
+  const Y = v => P.t + ih - (v / yMax) * ih;
+
+  const path = vals => vals.map((v, i) => (i ? "L" : "M") + X(i).toFixed(1) + " " + Y(v).toFixed(1)).join(" ");
+  const area = vals => path(vals) + ` L ${X(n-1).toFixed(1)} ${(P.t+ih).toFixed(1)} L ${X(0).toFixed(1)} ${(P.t+ih).toFixed(1)} Z`;
+
+  // 标签密度跟着可用宽度走：窄的小图自动隔更多天标一次
+  const labW = opt.buckets[0] && opt.buckets[0].label.length > 3 ? 46 : 30;
+  const fit = Math.max(2, Math.floor(iw / labW));
+  let step = Math.ceil(n / fit);
+  if(n > 40) step = Math.max(step, 7 * Math.ceil(step / 7));   // 按天时保持 7 的倍数，横轴落在同一星期
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(opt.aria || "每日到货量折线图")}">`;
+  svg += `<g>` + ticks.map(t =>
+    `<line x1="${P.l}" y1="${Y(t).toFixed(1)}" x2="${W-P.r}" y2="${Y(t).toFixed(1)}" stroke="var(--grid)" stroke-width="1"/>` +
+    `<text x="${P.l-8}" y="${(Y(t)+4).toFixed(1)}" text-anchor="end" font-size="11" fill="var(--ink-3)" font-family="'IBM Plex Mono',monospace">${nf(t)}</text>`
+  ).join("") + `</g>`;
+  const xTicks = [];
+  for(let i = 0; i < n; i += step) xTicks.push(i);
+  const lastI = n - 1;
+  if(lastI - xTicks[xTicks.length - 1] > step * 0.5) xTicks.push(lastI);
+  else xTicks[xTicks.length - 1] = lastI;              // 末尾离上一刻度太近就顶掉它，避免叠字
+  svg += xTicks.map(i =>
+    `<text x="${X(i).toFixed(1)}" y="${H-10}" text-anchor="middle" font-size="11" fill="var(--ink-3)" font-family="'IBM Plex Mono',monospace">${esc(opt.buckets[i].label)}</text>`).join("");
+
+  opt.series.forEach(s => {
+    if(s.fill) svg += `<path d="${area(s.values)}" fill="${s.color}" opacity="0.08"/>`;
+  });
+  opt.series.forEach(s => {
+    svg += `<path d="${path(s.values)}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"${s.dash ? ` stroke-dasharray="5 4"` : ""}/>`;
+  });
+  opt.series.forEach(s => {
+    const i = n - 1;
+    svg += `<circle cx="${X(i).toFixed(1)}" cy="${Y(s.values[i]).toFixed(1)}" r="4.5" fill="${s.color}" stroke="var(--surface)" stroke-width="2"/>`;
+  });
+  svg += `<line id="cross" x1="0" y1="${P.t}" x2="0" y2="${P.t+ih}" stroke="var(--line-strong)" stroke-width="1" opacity="0"/>`;
+  svg += `<rect x="${P.l}" y="${P.t}" width="${iw}" height="${ih}" fill="transparent" id="hit"/>`;
+  svg += `</svg>`;
+
+  host.innerHTML = svg + `<div class="tip"></div>`;
+  const svgEl = host.querySelector("svg"), tip = host.querySelector(".tip");
+  const cross = svgEl.querySelector("#cross"), hit = svgEl.querySelector("#hit");
+  const dots = [];
+  opt.series.forEach(s => {
+    const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    c.setAttribute("r", "4"); c.setAttribute("fill", s.color);
+    c.setAttribute("stroke", "var(--surface)"); c.setAttribute("stroke-width", "2");
+    c.setAttribute("opacity", "0"); svgEl.appendChild(c); dots.push(c);
+  });
+
+  function move(ev){
+    const rect = svgEl.getBoundingClientRect();
+    const px = (ev.clientX - rect.left) / rect.width * W;
+    let i = Math.round((px - P.l) / (n === 1 ? 1 : iw / (n - 1)));
+    i = Math.max(0, Math.min(n - 1, i));
+    cross.setAttribute("x1", X(i)); cross.setAttribute("x2", X(i)); cross.setAttribute("opacity", "1");
+    opt.series.forEach((s, k) => {
+      dots[k].setAttribute("cx", X(i)); dots[k].setAttribute("cy", Y(s.values[i])); dots[k].setAttribute("opacity", "1");
+    });
+    const cur = opt.series.find(s => s.lane === "cur"), prev = opt.series.find(s => s.lane === "prev");
+    let extra = "";
+    if(cur && prev){
+      const r = yoy(cur.values[i], prev.values[i]);
+      const d = cur.values[i] - prev.values[i];
+      extra = `<tr><td class="k">同比</td><td class="v" style="color:${r === null ? "var(--ink-3)" : (r >= 0 ? "var(--up)" : "var(--down)")}">${r === null ? "—" : (r >= 0 ? "▲ +" : "▼ ") + r.toFixed(1) + "%"} <span style="color:var(--ink-3)">(${d >= 0 ? "+" : ""}${nf(d)})</span></td></tr>`;
+    }
+    tip.innerHTML = `<div class="t-date">${esc(opt.buckets[i].full)}</div><table>` +
+      opt.series.map(s => `<tr><td class="k"><span class="sw" style="background:${s.color}"></span>${esc(s.name)}</td><td class="v">${nf(s.values[i])}</td></tr>`).join("") +
+      extra + `</table>`;
+    const hostRect = host.getBoundingClientRect();
+    const scale = hostRect.width / W;
+    const left = X(i) * scale;
+    const half = Math.min(90, hostRect.width / 2);
+    tip.style.left = Math.max(half, Math.min(hostRect.width - half, left)) + "px";
+    tip.style.top = ((P.t + 6) * scale) + "px";
+    tip.style.opacity = "1";
+  }
+  function leave(){
+    cross.setAttribute("opacity", "0"); tip.style.opacity = "0";
+    dots.forEach(d => d.setAttribute("opacity", "0"));
+  }
+  hit.addEventListener("pointermove", move);
+  hit.addEventListener("pointerdown", move);
+  svgEl.addEventListener("pointerleave", leave);
+}
+function niceTicks(max, count){
+  const raw = max / count, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw) || mag * 10;
+  const out = [];
+  for(let v = 0; v <= max + step * 0.999; v += step) out.push(Math.round(v));
+  return out;
+}
+
+function renderMain(b){
+  lineChart(document.getElementById("mainChart"), {
+    buckets: b.buckets, height: 320, aria: "2024 与 2025 每日合计到货量对比",
+    series: [
+      { name: "2024 同期", lane: "prev", color: "var(--prev)", values: b.totals.prev, dash: true },
+      { name: "2025 本期", lane: "cur",  color: "var(--s-xy)", values: b.totals.cur, fill: true }
+    ]
+  });
+}
+
+function renderFacets(b){
+  const host = document.getElementById("facets");
+  host.innerHTML = b.bizList.map(biz => {
+    const m = BIZ_META[biz] || { color:"var(--ink-3)" };
+    const c = sum(b.series[biz].cur), p = sum(b.series[biz].prev), r = yoy(c, p);
+    const tone = r === null ? "var(--ink-3)" : (r >= 0 ? "var(--up)" : "var(--down)");
+    return `<div class="facet">
+      <div class="facet-hd">
+        <span class="fname"><span class="dot" style="background:${m.color}"></span>${esc(biz)}</span>
+        <span class="fmeta">${nf(c)} vs ${nf(p)} · <b style="color:${tone}">${r === null ? "—" : (r >= 0 ? "+" : "") + r.toFixed(1) + "%"}</b></span>
+      </div>
+      <div class="chart-host" data-biz="${esc(biz)}"></div>
+    </div>`;
+  }).join("");
+  b.bizList.forEach(biz => {
+    const m = BIZ_META[biz] || { color:"var(--ink-3)" };
+    const el = host.querySelector(`.chart-host[data-biz="${cssq(biz)}"]`);
+    if(!el) return;
+    lineChart(el, {
+      buckets: b.buckets, height: 190, aria: biz + " 每日到货量对比",
+      series: [
+        { name: "2024", lane: "prev", color: "var(--prev)", values: b.series[biz].prev, dash: true },
+        { name: "2025", lane: "cur",  color: m.color,       values: b.series[biz].cur, fill: true }
+      ]
+    });
+  });
+}
+function cssq(s){ return s.replace(/["\\]/g, "\\$&"); }
+
+function renderTable(b){
+  const host = document.getElementById("tableHost");
+  const cols = b.bizList;
+  let h = `<table class="data"><thead>
+    <tr><th rowspan="2">${state.gran === "week" ? "周次" : "日期 (MM-DD)"}</th>` +
+    cols.map(c => `<th class="grp" colspan="3">${esc(c)}</th>`).join("") +
+    `<th class="grp" colspan="3">合计</th></tr><tr>` +
+    [...cols, "合计"].map(() => `<th class="sep">2024</th><th>2025</th><th>同比</th>`).join("") +
+    `</tr></thead><tbody>`;
+
+  for(let i = 0; i < b.buckets.length; i++){
+    h += `<tr><td>${esc(b.buckets[i].label)}</td>`;
+    cols.forEach(c => { h += cell(b.series[c].prev[i], b.series[c].cur[i]); });
+    h += cell(b.totals.prev[i], b.totals.cur[i]);
+    h += `</tr>`;
+  }
+  h += `</tbody><tfoot><tr><td>合计</td>`;
+  cols.forEach(c => { h += cell(sum(b.series[c].prev), sum(b.series[c].cur)); });
+  h += cell(sum(b.totals.prev), sum(b.totals.cur));
+  h += `</tr></tfoot></table>`;
+  host.innerHTML = h;
+}
+function cell(prev, cur){
+  const r = yoy(cur, prev);
+  const tone = r === null ? "var(--ink-3)" : (r > 0.05 ? "var(--up)" : r < -0.05 ? "var(--down)" : "var(--ink-3)");
+  const mark = r === null ? "—" : (r > 0.05 ? "▲" : r < -0.05 ? "▼" : "＝");
+  return `<td class="sep" style="color:var(--ink-2)">${nf(prev)}</td><td>${nf(cur)}</td>` +
+         `<td class="delta" style="color:${tone}">${r === null ? "—" : mark + " " + (r > 0 ? "+" : "") + r.toFixed(0) + "%"}</td>`;
+}
+
+/* ── 导出 ──────────────────────────────────────────────────────────────── */
+function exportCSV(){
+  if(!lastBuild) return;
+  const b = lastBuild, cols = b.bizList;
+  const head = [state.gran === "week" ? "周次" : "日期"];
+  [...cols, "合计"].forEach(c => head.push(`${c}_2024`, `${c}_2025`, `${c}_同比%`));
+  const lines = [head.join(",")];
+  for(let i = 0; i < b.buckets.length; i++){
+    const row = [b.buckets[i].label];
+    cols.forEach(c => {
+      const p = b.series[c].prev[i], cu = b.series[c].cur[i], r = yoy(cu, p);
+      row.push(p, cu, r === null ? "" : r.toFixed(1));
+    });
+    const p = b.totals.prev[i], cu = b.totals.cur[i], r = yoy(cu, p);
+    row.push(p, cu, r === null ? "" : r.toFixed(1));
+    lines.push(row.join(","));
+  }
+  const blob = new Blob(["\uFEFF" + lines.join("\n")], { type:"text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `到货同期对比_${state.gran === "week" ? "周" : "日"}_${state.wh === "__all" ? "全部仓" : state.wh}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/* ── 示例数据（明确标注：非真实业务数据）────────────────────────────── */
+function demoRows(){
+  let seed = 20250915;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const shape = { "回收-闲鱼":[1150, 1.14], "回收-天猫":[430, 0.86], "验货宝":[620, 1.31], "回收-其他":[290, 1.02], "寄卖":[160, 1.21] };
+  const whs = [["深圳仓", .52], ["杭州仓", .31], ["东莞仓", .17]];
+  const rows = [];
+  [PREV_YEAR, CUR_YEAR].forEach(y => {
+    const base = new Date(`${y}-${PERIOD.start}T00:00:00Z`);
+    for(let i = 0; i < PERIOD.days; i++){
+      const d = new Date(base.getTime() + i * 864e5), dow = d.getUTCDay();
+      const wk = dow === 0 ? .74 : dow === 6 ? .82 : dow === 1 ? 1.16 : 1;
+      const promo = (i >= 45 && i <= 52) ? 1.55 : (i >= 60 && i <= 66) ? 1.22 : 1;   // 双11 / 双12 前波峰
+      const trend = 1 + i / PERIOD.days * .18;
+      for(const biz in shape){
+        const [lvl, ygrow] = shape[biz];
+        const day = lvl * wk * promo * trend * (y === CUR_YEAR ? ygrow : 1) * (.9 + rnd() * .2);
+        whs.forEach(([w, share]) => {
+          rows.push({
+            year:y, date:d.toISOString().slice(0,10), md:d.toISOString().slice(5,10),
+            dayIndex:i, dow, biz, warehouse:w, cnt: Math.max(0, Math.round(day * share * (.92 + rnd() * .16)))
+          });
+        });
+      }
+    }
+  });
+  return rows;
+}
+
+/* ── 事件绑定 ──────────────────────────────────────────────────────────── */
+function msg(t, bad){
+  const el = document.getElementById("parseMsg");
+  el.textContent = t; el.style.color = bad ? "var(--down)" : "var(--ink-3)";
+}
+function ingest(text){
+  try{ loadRows(normalize(parseCSV(text)), false); }
+  catch(e){ msg("解析失败：" + e.message, true); }
+}
+const drop = document.getElementById("drop"), fileInput = document.getElementById("file");
+document.getElementById("pickBtn").addEventListener("click", () => fileInput.click());
+fileInput.addEventListener("change", e => {
+  const f = e.target.files[0];
+  if(f) f.text().then(ingest);
+});
+["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => {
+  const f = e.dataTransfer.files[0];
+  if(f) f.text().then(ingest);
+});
+document.getElementById("loadPaste").addEventListener("click", () => {
+  const v = document.getElementById("paste").value.trim();
+  if(!v){ msg("先粘贴点内容进来", true); return; }
+  ingest(v);
+});
+document.getElementById("loadDemo").addEventListener("click", () => loadRows(demoRows(), true));
+document.getElementById("clearDemo").addEventListener("click", () => {
+  state.rows = []; state.isDemo = false;
+  document.getElementById("demoBanner").classList.add("hide");
+  ["ctlPanel","kpis","mainPanel","facetPanel","tablePanel"].forEach(id => document.getElementById(id).classList.add("hide"));
+  document.getElementById("intakePanel").classList.remove("hide");
+  msg("");
+});
+document.getElementById("reopen").addEventListener("click", () => {
+  document.getElementById("intakePanel").classList.remove("hide");
+  document.getElementById("intakePanel").scrollIntoView({ behavior:"smooth", block:"start" });
+});
+document.getElementById("wh").addEventListener("change", e => { state.wh = e.target.value; render(); });
+document.getElementById("exportBtn").addEventListener("click", exportCSV);
+function segBind(id, key){
+  document.getElementById(id).addEventListener("click", e => {
+    const btn = e.target.closest("button[data-v]");
+    if(!btn) return;
+    state[key] = btn.dataset.v;
+    [...btn.parentElement.children].forEach(b => b.setAttribute("aria-pressed", String(b === btn)));
+    render();
+  });
+}
+segBind("granSeg", "gran");
+segBind("alignSeg", "align");
+document.getElementById("bizChips").addEventListener("click", e => {
+  const chip = e.target.closest(".chip");
+  if(!chip) return;
+  const biz = chip.dataset.biz;
+  if(state.bizOn.has(biz)){
+    if(state.bizOn.size === 1) return;
+    state.bizOn.delete(biz);
+  } else state.bizOn.add(biz);
+  chip.setAttribute("aria-pressed", String(state.bizOn.has(biz)));
+  render();
+});
+let rid;
+window.addEventListener("resize", () => { clearTimeout(rid); rid = setTimeout(() => { if(state.rows.length) render(); }, 140); });
+
+restoreLocal();
+</script>
+</body>
+</html>
